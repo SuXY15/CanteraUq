@@ -26,7 +26,6 @@ def calculator(name, gas, props_arr, file_name):
 if __name__=="__main__":
     # = = = = = = = = = =
     # calculating
-    checkpath(comp_dir)
     for m,name,mech in mechs:
         gas = load_mech(mech)
         file_name = comp_dir+name+".json"
@@ -56,6 +55,7 @@ if __name__=="__main__":
     for m,name,mech in mechs:
         # loading data
         props_arr = [d['props'] for d in json_reader(comp_dir+name+".json")]
+        rela_err = []
         for i,phi in enumerate(phi_arr):
             if m==0: IDT_DATA[phi] = {}
             for p,P in enumerate(P_arr):
@@ -67,14 +67,17 @@ if __name__=="__main__":
 
                 # plot IDT
                 AX[i,p].plot(1000./Temp_arr,idt_arr,color_arr[m]+'-'+symbol_arr[m])
-                maxA,minA = max(max(idt_arr)*8,maxA),min(min(idt_arr)/2,minA)
+                maxA,minA = max(max(idt_arr)*32,maxA),min(min(idt_arr)/2,minA)
                 
                 # error figure
                 if m==0: IDT_DATA[phi][P] = idt_arr
                 else:
                     diff = np.abs(idt_arr-IDT_DATA[phi][P])/IDT_DATA[phi][P]
                     BX[i,p].plot(1000./Temp_arr,diff,color_arr[m]+'-'+symbol_arr[m])
-                    maxB,minB = max(max(diff)*8,maxB),min(min(diff)/2,minB)
+                    maxB,minB = max(max(diff)*32,maxB),min(min(diff)/2,minB)
+                    rela_err += list(diff)
+        if len(rela_err):
+            cprint("%s, max: %.3f%% mean: %.3f%%"%(name, np.max(rela_err)*100, np.mean(rela_err)*100))
 
     # = = = = = = = = = =
     # figure setting

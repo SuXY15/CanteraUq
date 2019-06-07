@@ -1,9 +1,18 @@
+#
+# For mechanism configuration, should be run before DRG
+#
 from utils import *
 
-choice = sys.argv[1]
+if len(sys.argv)<2:
+    cprint("Error! Config need a mechanism name")
+    sys.exit(0)
+
+mech = sys.argv[1]
 
 if __name__ == "__main__":
-    if choice == "DME":
+    # = = = = = = = = = =
+    # DMEzhao
+    if mech == "DME":
         UF = 5.             # Uncertainty factor
         pdiff = 5e-3        # difference interval for sensitivity
         maxt = 5e-2         # max time for json writer
@@ -34,7 +43,10 @@ if __name__ == "__main__":
                  'type':'UV',               # sim type
                  'tot': 10.,                # total time
              }
-    elif choice == "DME2000":
+    
+    # = = = = = = = = = =
+    # DME2000
+    elif mech == "DME2000":
         UF = 5.             # Uncertainty factor
         pdiff = 1e-2        # difference interval for sensitivity
         maxt = 5e-2         # max time for json writer
@@ -49,13 +61,13 @@ if __name__ == "__main__":
         
         # mechanisms
         mech_arr = ["DME2000",
-                    "DMEsk59",
-                    "DMEsk53",
-                    "DMEsk47"]
+                    "DMEsk50",
+                    "DMEsk43",
+                    "DMEsk29"]
         # conditions
         phi_arr=[0.5, 1.0, 1.5]
-        P_arr = [1.0, 10.0, 20.0]
-        T_arr = [650., 700., 800., 1000., 1200.]
+        P_arr = [1.0, 5.0, 20.0]
+        T_arr = [600., 650., 700., 800., 1000., 1200.]
         
         props = {'T': 1000.,                # Temperature
                  'P': 10.,                  # Pressure
@@ -65,7 +77,7 @@ if __name__ == "__main__":
                  'type':'UV',               # sim type
                  'tot': 10.,                # total time
              }
-    elif choice == "JP10":
+    elif mech == "JP10":
         raise Exception("JP10 not defined.")
     else:
         raise Exception("No choices matched.")
@@ -86,7 +98,9 @@ if __name__ == "__main__":
                     "T_arr": T_arr,
                     "props": props
                 }
-
-    config_writer(choice+".config",config_dict)
-    conditions_writer(mech_dir,props,get_conditions(phi_arr,P_arr,T_arr),note='')
-    print(json.dumps(config_reader(choice+".config"),indent=4))
+    checkpath(comp_dir); checkpath(sens_dir)
+    checkpath(acts_dir); checkpath(resp_dir)
+    checkpath(figs_dir); checkpath(mech_dir)
+    config_writer('data/'+mech+".config", config_dict)
+    conditions_writer(mech_dir, props, get_conditions(phi_arr,P_arr,T_arr))
+    print(json.dumps(config_reader('data/'+mech+".config"), indent=4))

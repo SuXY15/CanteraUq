@@ -82,9 +82,9 @@ if __name__=="__main__":
     # showing results
     gas0 = load_mech(mechs[0][2])
     eqs0 = [r.equation for r in gas0.reactions()]
-    fig = plt.figure("Difference Calibration",figsize=(6,4.5))
+    fig = plt.figure("Difference Calibration",figsize=c2i(12,9))
     for m,name,mech in mechs:
-        cprint("\nReading data of %s"%mech,'b')
+        cprint("Reading data of %s"%mech,'b')
         gas = load_mech(mech)
         lr_arr,sens_list = [], []
         props_arr = json_reader(comp_dir+name+"_calib.json")
@@ -106,26 +106,27 @@ if __name__=="__main__":
         xtick = ['R%d'%pr for pr in parentRank(rank[:k], eqs, eqs0)]
         hbf = sens_bf[rank[:k]]
         hap = sens_ap[rank[:k]]
+        
+        plt.figure("Difference Calibration",figsize=c2i(12,9))
+        # plt.title(r"Sensitivity of brute force method, $\delta$ calibration")
+        plt.plot(pdiff_arr,1-np.array(lr_arr), color_arr[m]+'-')
+        plt.xscale(r'log')
+        plt.yscale(r'log')
+        plt.xlabel(r'perturbation $\delta$')
+        plt.ylabel(r'relative error')
+        plt.legend(mech_arr,frameon=False)
 
         # plot
-        fig2 = plt.figure("Sensitivity Calibration %s"%name,figsize=(6,4.5))
-        plt.title("Sensitivity difference between methods, %s"%name)
+        fig2 = plt.figure("Sensitivity Calibration %s"%name,figsize=c2i(12,9))
+        # plt.title("Sensitivity difference between methods, %s"%name)
         plt.bar(x-0.2,hbf,width=0.4)
         plt.bar(x+0.2,hap,width=0.4)
         plt.xticks(x,xtick,rotation=45)
-        plt.ylabel(r'Reaction Index')
-        plt.xlabel(r'Sensitivity')
-        plt.legend([r'brute force',r'approximate'],loc="upper right",frameon=False)
-        save_figure(fig2, path=figs_dir+'calib_%s_sens.png'%name)
+        plt.xlabel(r'Reaction Index')
+        plt.ylabel(r'Sensitivity')
+        plt.legend([r'brute force',r'adjoint'],loc="upper right",frameon=False)
+        save_figure(fig2, path=figs_dir+'calib_%s_sens.eps'%name)
 
-        plt.figure("Difference Calibration")
-        plt.title("Sensitivity of brute force method, pdiff calibration")
-        plt.plot(pdiff_arr,1-np.array(lr_arr))
-        plt.xscale(r'log')
-        plt.yscale(r'log')
-        plt.xlabel(r'pdiff')
-        plt.ylabel(r'relative error')
-        plt.legend(mech_arr,frameon=False)
-    save_figure(fig, path=figs_dir+'calib_pdiff.png')
+    save_figure(fig, path=figs_dir+'calib_pdiff.eps')
     plt.show()
 

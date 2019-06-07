@@ -87,7 +87,7 @@ if __name__=="__main__":
 
     # = = = = = = = = = =
     # show results
-    for m,name,mech in [mechs[3]]:
+    for m,name,mech in mechs:
         cprint("Loading %s"%name,'b')
         gas = load_mech(mech)
         eqs = [r.equation for r in gas.reactions()]
@@ -104,7 +104,8 @@ if __name__=="__main__":
         props_arr = [d['props'] for d in data_arr]
         tdata_arr = np.array([normalize(d['tdata']) for d in data_arr])
         sdata_arr = np.array([normalize(d['sdata']) for d in data_arr])
-        for t,T in enumerate(T_arr[-1:]):
+        err_arr = []
+        for t,T in enumerate(T_arr):
             fig, AX = get_sub_plots("Sensitivity Comparation, %s, T=%.0fK"%(name,T))
             props_tarr = [props_arr[i] for i,p in enumerate(props_arr) if p['T'] == T]
             tdata_tarr = [tdata_arr[i] for i,p in enumerate(props_arr) if p['T'] == T]
@@ -114,10 +115,12 @@ if __name__=="__main__":
             for pi,props in enumerate(props_tarr):
                 i,phi = first(phi_arr,lambda phi: phi==props['phi'])
                 p,P = first(P_arr,lambda P: P==props['P'])
-                AX[i,p].bar(x-0.2,sdata_tarr[pi][rank],width=0.4)
-                AX[i,p].bar(x+0.2,tdata_tarr[pi][rank],width=0.4)
+                AX[i,p].bar(x-0.2,tdata_tarr[pi][rank],width=0.4)
+                AX[i,p].bar(x+0.2,sdata_tarr[pi][rank],width=0.4)
                 # if i==2 and p==1: plt.xticks(x,xtick,rotation=45)
+                err_arr.append(1-np.dot(tdata_tarr[pi],sdata_tarr[pi]))
             set_sub_plots(AX, xlabel=r'sensitive reactions', ylabel=r'sensitivity',
-                    legend=["adjoint","brute force"],ylim=[-1.,1.])
-            save_figure(fig, path=figs_dir+'/sens_comp/%s_T=%.0fK.png'%(name,T))
+                    legend=["brute force","adjoint"],ylim=[-1.,1.])
+            save_figure(fig, path=figs_dir+'/sens_comp/%s_T=%.0fK.eps'%(name,T))
+        cprint("Mean err: %.3e, Max err: %.3e"%(np.mean(err_arr), np.max(err_arr)), 'g')
     plt.show()

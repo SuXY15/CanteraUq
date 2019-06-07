@@ -5,19 +5,22 @@
 # Monte Carlo Sampling: mc
 
 mech = "DME2000"
-server = "False"
 
 # configuration
 config:
 	python3 src/config.py ${mech}
 
-# DRG mechanism reduction
-DRG:
-	python3 src/DRG.py
+# showing mechansim's combustion property
+property:
+	python3 src/property.py ${mech}
 
-# curv drg curv
-curv:
-	python3 tools/curv.py ${mech}
+# DRG mechanism reduction
+DRG_test:
+	python3 src/DRG.py ${mech} test
+DRG_reduce:
+	python3 src/DRG.py ${mech} reduce ${thresh}
+DRG_curv:
+	python3 src/DRG.py ${mech} curv ${idx}
 
 # IDT mechanism comparation
 compare:
@@ -26,6 +29,10 @@ ifdef N
 else
 	python3 src/compare.py ${mech}
 endif
+
+# compare reaction pathway
+pathway:
+	python3 src/pathway.py ${mech}
 
 # mechanism pdiff calibration
 calibration:
@@ -76,10 +83,11 @@ response_distribution:
 	python3 src/respSurface.py ${mech} distribution
 
 # propagation
-type = 3
+type = 5
 propagation:
 	python3 src/propagation.py ${mech} ${type}
-
+propagation_err:
+	python3 src/propagation_err.py ${mech} 5
 # check
 check:
 	python3 src/check.py ${mech}

@@ -3,3 +3,4 @@ mech/
 !mech/DME
 !mech/DME2000
 *__pycache__*
+local

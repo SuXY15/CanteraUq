@@ -2,16 +2,15 @@ from utils import *
 sys.path.append("dep/active_subspaces/utils")
 from response_surfaces import *
 
-import tensorflow as tf
-from keras.initializers import he_normal
-from keras import backend as K
-from keras.utils import np_utils
-from keras.models import Sequential
-from keras.layers import Dense,Dropout,Flatten
-from keras.optimizers import SGD
-from keras.layers.convolutional import Conv2D,MaxPooling2D
-
 class NerualNetworkApproximation():
+    import tensorflow as tf
+    from keras.initializers import he_normal
+    from keras import backend as K
+    from keras.utils import np_utils
+    from keras.models import Sequential
+    from keras.layers import Dense,Dropout,Flatten
+    from keras.optimizers import SGD
+    from keras.layers.convolutional import Conv2D,MaxPooling2D
     model = None
     history = {'loss':[],'val_loss':[],'my_metric':[],'val_my_metric':[]}
     model_weights = "data/tmp/resp_train.h5"
@@ -73,8 +72,8 @@ class NerualNetworkApproximation():
         return fig1
 
 def fitting_plots(x, xf, xp, v, vf, vp, NX, NP):
-    fig1 = plt.figure("Training and Validation")
-    plt.title("Training and Validation")
+    fig1 = plt.figure("Training and Validation",figsize=c2i(12,9))
+    # plt.title("Training and Validation")
     plt.plot(xf,xp,'C0o',ms=4,fillstyle='none')
     plt.plot(vf,vp,'C1o',ms=4,fillstyle='none')
     fmin, fmax = np.min(xf), np.max(xf)
@@ -83,9 +82,9 @@ def fitting_plots(x, xf, xp, v, vf, vp, NX, NP):
     plt.ylabel(r'$\log(\tau_{prediction})$')
     plt.legend(['train','valid'],frameon=False)
 
-    fig2 = plt.figure("Response surface prediction")
-    plt.title("Response surface prediction")
-    plt.plot(NX[:,0],NP,'k.',ms=.8)
+    fig2 = plt.figure("Response surface prediction",figsize=c2i(12,9))
+    # plt.title("Response surface prediction")
+    plt.plot(NX[:,0],NP,'ko',ms=.8,fillstyle='full')
     plt.plot(x[:,0],xp,'C0o',ms=4,fillstyle='none')
     plt.plot(v[:,0],vp,'C1o',ms=4,fillstyle='none')
 
@@ -187,8 +186,29 @@ def train(dim=3,order=3,N=50000,method=''):
     cprint("dim: %d, ord: %d, train: %d, valid: %d"%(dim,order,trainSize,len(f)-trainSize), 'b')
     if method=='ann': response_surface.show_loss()
     fig1,fig2 = fitting_plots(x, xf, xp, v, vf, vp, NX, NP)
-    # save_figure(fig1, figs_dir+"resp_train&valid.png")
-    # save_figure(fig2, figs_dir+"resp_prediction.png")
+    
+    import pandas as pd
+    fig3, ax = plt.subplots(figsize=c2i(12,9))
+
+    dist = pd.DataFrame(NP, columns=['samples'])
+    dist.plot.kde(ax=ax, legend=False, color='k', lw=1)
+    dist.plot.hist(density=True, ax=ax, bins=32, color='k', histtype='step')
+
+    dist = pd.DataFrame(xf.flatten().tolist()+vf.flatten().tolist(), columns=['train'])
+    dist.plot.kde(ax=ax, legend=False, color='r', lw=1)
+    dist.plot.hist(density=True, ax=ax, bins=32, color='r', histtype='step')
+    
+    dist = pd.DataFrame(xp.flatten().tolist()+vp.flatten().tolist(), columns=['predict'])
+    dist.plot.kde(ax=ax, legend=False, color='b', lw=1)
+    dist.plot.hist(density=True, ax=ax, bins=32, color='b', histtype='step')
+
+    plt.xlim([-2.5, -0.5])
+    plt.xlabel(r'$\log_{10}({IDT}[s])$')
+    plt.ylabel(r'Normalized Histogram')
+    plt.legend(["samples", "train", "predict"], frameon=False)
+    save_figure(fig1, figs_dir+"resp_train&valid.eps")
+    save_figure(fig2, figs_dir+"resp_prediction.pdf")
+    save_figure(fig3, figs_dir+"resp_histogram.eps")
     plt.show()
 
 # train without subspace
@@ -247,6 +267,7 @@ def rawtrain(order=2,N=50000):
 
 def distribution(dim=3,N=50000):
     for m,name,mech in mechs:
+        cprint("loading mech: %s"%mech, 'g')
         uncetainty_factors = load_uncertainty(mech, UF=UF)
         # Load data
         data_dict, dist_dict = {}, {}
@@ -290,7 +311,7 @@ def distribution(dim=3,N=50000):
             for p,P in enumerate(P_arr):
                 data_list = data_dict[phi][P]
                 dist_list = dist_dict[phi][P]
-                AX[i][p].plot(T_revert, data_list)
+                AX[i][p].plot(T_revert, data_list,'k-')
                 for t,T in enumerate(T_arr):
                     height = float((max(dist_list[t][1])-min(dist_list[t][1]))/(maxA-minA)*0.3)
                     b_height = float((np.mean(dist_list[t][1])-min(dist_list[t][1]))/(maxA-minA)*0.3)
@@ -299,15 +320,15 @@ def distribution(dim=3,N=50000):
                     left = p*0.3 + 0.05 + (1000./T-minT)/(maxT-minT)*0.3-l_width
                     bottom = (2-i)*0.3 + 0.05 + (data_list[t]-minA)/(maxA-minA)*0.3-b_height
                     ax = plt.axes([left,bottom,width,height],facecolor='none')
-                    plt.plot(dist_list[t][0],dist_list[t][1],'.')
+                    plt.plot(dist_list[t][0],dist_list[t][1],'ko',ms=1,fillstyle='full')
                     for edge in ['top','right','bottom','left']:
                         ax.spines[edge].set_visible(False)
                     plt.xticks([])
                     plt.yticks([])
 
-        set_sub_plots(AX, r'1000/T, $K^{-1}$', r'$\log(\tau)$', [name],
+        set_sub_plots(AX, r'1000/T, $K^{-1}$', r'$\log_{10}(IDT[s])$', [name],
                             xlim=[minT,maxT],ylim=[minA,maxA])
-        save_figure(figA, path=figs_dir+'resp_Distribution_%s.png'%name)
+        save_figure(figA, path=figs_dir+'resp_Distribution_%s.pdf'%name)
     plt.show()
 
 def predict(dim=3,order=2,N=50000):
@@ -369,6 +390,24 @@ def predict(dim=3,order=2,N=50000):
     figA, AX = get_sub_plots(num="IDT Error Comparison")
     figB, BX = get_sub_plots(num="Sigma Comparison")
     figC, CX = get_sub_plots(num="Sample Check")
+    
+    # m,name,mech = mechs[3]
+    # gas = load_mech(mech)
+    # resp_name = resp_dir+"%s_dim=%d_order=%d.json"%(name,dim,order)
+    # data_dict = json_reader(resp_name)[0]
+    # for p,P in enumerate(P_arr):
+    #     DATA_list = []
+    #     for i,phi in enumerate(phi_arr):
+    #         data_list = []
+    #         for data in data_dict[str(phi)][str(P)]:
+    #             if data[0]!=None:
+    #                 data_list.append(data[1])
+    #             else:
+    #                 data_list.append(np.nan)
+    #         DATA_list.append(data_list)
+    #     print("P:",P)
+    #     print(np.array(DATA_list).T)
+
     # plotting
     for m,name,mech in mechs:
         cprint("Plotting %s"%name,'g')
@@ -392,12 +431,12 @@ def predict(dim=3,order=2,N=50000):
                 BX[i][p].plot(1000./np.array(T_arr),data_list[:,1],color_arr[m]+"-"+symbol_arr[m])
                 CX[i][p].plot(1000./np.array(T_arr),data_list[:,2],color_arr[m]+"-"+symbol_arr[m])
     # figure setting
-    set_sub_plots(AX, r'1000/T, $K^{-1}$', r'$\log(\tau)$', mech_arr, ylim=[minA,maxA])
-    set_sub_plots(BX, r'1000/T, $K^{-1}$', r'$\sigma\ of\ \log(\tau)$', mech_arr, ylim=[minB,maxB])
+    set_sub_plots(AX, r'1000/T, $K^{-1}$', r'$\log(IDT[s])$', mech_arr, ylim=[minA,maxA])
+    set_sub_plots(BX, r'1000/T, $K^{-1}$', r'$\sigma_r$', mech_arr, ylim=[minB,maxB])
     set_sub_plots(CX, r'1000/T, $K^{-1}$', r'$N_{train}$', mech_arr, ylim=[minC,maxC])
-    save_figure(figA, figs_dir+'resp_IDT.png')
-    save_figure(figB, figs_dir+'resp_sigma.png')
-    save_figure(figC, figs_dir+'resp_check.png')
+    save_figure(figA, figs_dir+'resp_IDT.eps')
+    save_figure(figB, figs_dir+'resp_sigma.eps')
+    save_figure(figC, figs_dir+'resp_check.eps')
     plt.show()
 
 if __name__ == '__main__':

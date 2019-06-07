@@ -70,8 +70,8 @@ def sampling():
         calculator('c%d'%i, gas, props_arr[l[i]:l[i+1]], file_name)
 
 def show(show_flag=0):
-    m,name,mech = mechs[1]
-    props['phi'],props['P'],props['T'] = 1.0, 1.0, 700.0
+    m,name,mech = mechs[0]
+    props['phi'],props['P'],props['T'] = 1.0, 1.0, 1000.0
 
     # loading
     gas = load_mech(mech)
@@ -82,18 +82,15 @@ def show(show_flag=0):
     tdata_arr = [sd['tdata'] for sd in sens_data_arr]
     props_arr = [sd['props'] for sd in sens_data_arr]
     
-    for i,tdata in enumerate(tdata_arr):
-        print(i,"%.3e"%max(tdata),np.argmax(tdata))
-        plt.plot(tdata)
-
     idx = [i for i,td in enumerate(tdata_arr) if np.sum(np.isinf(td)+np.isnan(td))==0]
     tdata_arr = [tdata_arr[i] for i in idx]
     props_arr = [props_arr[i] for i in idx]
     idt = np.array([props['idt'] for props in props_arr])
+    print(file_name)
     print("Num of samples:",len(sens_data_arr), "Useful:", len(idx))
 
     # calculating C matrix
-    # tdata_arr = normalize(tdata_arr)
+    tdata_arr = normalize(tdata_arr)
     C = np.transpose(tdata_arr) @ np.array(tdata_arr)
 
     # SVD decomposing
@@ -103,37 +100,40 @@ def show(show_flag=0):
     w1x = [np.dot(VT[0], 3.*np.log(props['factor'])/np.log(uncetainty_factors)) for props in props_arr]
     w2x = [np.dot(VT[1], 3.*np.log(props['factor'])/np.log(uncetainty_factors)) for props in props_arr]
 
-    # # figure(1): eigenvalue
-    # graph_rank = np.arange(1,21)
-    # tick = np.arange(0,21,2)
-    # fig1 = plt.figure("Eigenvalue",figsize=(6,4.5))
+    # figure(1): eigenvalue
+    graph_rank = np.arange(1,21)
+    tick = np.arange(0,21,2)
+    fig1 = plt.figure("Eigenvalue",figsize=c2i(12,9))
     # plt.title("Eigenvalue of subspace")
-    # plt.plot(graph_rank,S[graph_rank-1],'-o')
-    # plt.xticks(tick)
-    # plt.yscale(r'log')
-    # plt.xlabel(r'Eigenvalue Number')
-    # plt.ylabel(r'Eigenvalue')
-    # save_figure(fig1, path=figs_dir+'acts_Eigenvalue.png')
+    plt.plot(graph_rank,S[graph_rank-1], marker='o', markerfacecolor='none', color='k')
+    plt.xticks(tick)
+    plt.yscale(r'log')
+    plt.xlabel(r'Eigenvalue Number')
+    plt.ylabel(r'Eigenvalue')
+    save_figure(fig1, path=figs_dir+'acts_Eigenvalue.eps')
     
-    # # figure(2): one dimensional projection
-    # fig2 = plt.figure("w1 projection",figsize=(6,4.5))
+    # figure(2): one dimensional projection
+    fig2 = plt.figure(r"$\mathbf{w}_1$ projection",figsize=c2i(12,9))
     # plt.title("w1 projection of subspace")
-    # plt.scatter(w1x, np.log10(idt), marker='o', color='', edgecolors='C0')
-    # plt.xlabel(r'$w_1^Tx$')
-    # plt.ylabel(r'$\log_{10}({IDT}[s])$')
-    # save_figure(fig2, path=figs_dir+'acts_W1projection.png')
+    plt.scatter(w1x, np.log10(idt), marker='o', color='', edgecolors='k')
+    plt.xlabel(r'$\mathbf{w}_1^T \mathbf{x}$')
+    plt.ylabel(r'$\log_{10}({IDT}[s])$')
+    save_figure(fig2, path=figs_dir+'acts_W1projection.eps')
     
-    # # figure(3): w1 components
-    # x,y = np.transpose([[i,v] for i,v in enumerate(VT[0]) if abs(v)>0.02])
-    # fig3 = plt.figure("w1 components",figsize=(6,4.5))
+    # figure(3): w1 components
+    x,y = np.transpose([[i,v] for i,v in enumerate(VT[0]) if abs(v)>0.1])
+    fig3 = plt.figure("w1 components",figsize=c2i(12,9))
     # plt.title("w1 components of subspace")
-    # plt.stem(x,y, markerfmt='C0o', linefmt='C0-.',basefmt='')
-    # plt.xlabel(r'Reaction Index')
-    # plt.ylabel(r'$w_1$ components')
-    # save_figure(fig3, path=figs_dir+'acts_W1components.png')
+    markerline, stemlines, baseline = plt.stem(x,y, markerfmt='ko', linefmt='k-.',basefmt='gray')
+    plt.plot([1,gas.n_reactions],[0,0],'-',color='gray')
+    plt.setp(markerline, color='k', markerfacecolor='none', linewidth=2)
+    plt.xlabel(r'Reaction Index')
+    plt.ylabel(r'$\mathbf{w}_1$ components')
+    plt.xlim([1, gas.n_reactions])
+    save_figure(fig3, path=figs_dir+'acts_W1components.eps')
     
     # # figure(4): histogram
-    # fig4 = plt.figure("histogram",figsize=(6,4.5))
+    # fig4 = plt.figure("histogram",figsize=c2i(12,9))
     # plt.title("histogram of IDT distribution")
     # plt.hist(np.log10(idt),bins=20,histtype='step')
     # plt.xlabel(r'$\log_{10}({IDT}[s])$')
@@ -141,7 +141,7 @@ def show(show_flag=0):
     # save_figure(fig4, path=figs_dir+'acts_Histogram.png')
     
     # # figure(5): scatter
-    # fig5 = plt.figure("w1 and w2 projection",figsize=(6,4.5))
+    # fig5 = plt.figure("w1 and w2 projection",figsize=c2i(12,9))
     # plt.scatter(w1x, w2x, c=np.log10(idt), s=50.0, cmap='rainbow',
     #             vmin=np.min(np.log10(idt)), vmax=np.max(np.log10(idt)))
     # plt.title("w1 and w2 projection of subspace")

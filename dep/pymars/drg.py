@@ -255,18 +255,21 @@ def run_drg(solution_object, conditions_file, error_limit, target_species,
     else:
         num = len(thresh)
         sol_old = solution_object
+        species_number, max_err, species_deleted = [], [], []
         for i,threshold in enumerate(thresh):
             helper.progress(float(i)/num,"Thr",1)
-            sol_new = drg_loop_control(
+            sol_new, [spn, err] = drg_loop_control(
                 solution_object, target_species, retained_species, model_file, error, threshold, done, rate_edge_data,
                 ignition_delay_detailed, conditions_array)
             ori_s = [s.name for s in sol_old.species()]
             new_s = [s.name for s in sol_new.species()]
             del_s = [s for s in ori_s if s not in new_s]
-            # print("Species deleted:"," ".join(del_s))
+            max_err.append(err)
+            species_number.append(spn)
+            species_deleted.append(" ".join(del_s))
             sol_old = sol_new
         helper.progress(1.0,'Thr',1)
-    return sol_new
+    return sol_new,[max_err,species_number,species_deleted]
 
 
 def drg_loop_control(solution_object, target_species, retained_species, model_file, stored_error, threshold, done, rate_edge_data,
@@ -335,7 +338,7 @@ def drg_loop_control(solution_object, target_species, retained_species, model_fi
 
     # Return new model.
     new_solution_objects = new_solution_objects[1]
-    return new_solution_objects
+    return new_solution_objects, [len(new_solution_objects[1].species()),maxerr]
 
 def get_rates_drg(sim_array, solution_object):
     """Calculates values to be used in the calculation of Direct Interaction Coefficients

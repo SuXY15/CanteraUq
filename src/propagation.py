@@ -4,14 +4,13 @@ from response_surfaces import *
 
 dim, order, N = 3,2,50000
 
-Type = int(sys.argv[2])
-Flag = None
 Legend = []
 TypeName = ['O','I', 'II', 'III', 'IV']
 
 if __name__ == "__main__":
-    pmech = mechs[2]
-    smech = mechs[3]
+    p_pos, s_pos = 1, 2
+    pmech = mechs[p_pos]
+    smech = mechs[s_pos]
 
     # preparing
     pgas = load_mech(pmech[2])
@@ -48,7 +47,7 @@ if __name__ == "__main__":
             data_list, dist_list = [], []
 
             for idx_T,T in enumerate(T_arr):
-                progress((idx_T+idx_P*len(T_arr)+idx_phi*len(T_arr)*len(P_arr))/(len(phi_arr)*len(P_arr)*len(T_arr)))
+                # progress((idx_T+idx_P*len(T_arr)+idx_phi*len(T_arr)*len(P_arr))/(len(phi_arr)*len(P_arr)*len(T_arr)))
                 props['phi'],props['P'],props['T'] = phi,P,T
 
                 Wd = get_subspace(pmech[1], props, dim)
@@ -56,19 +55,18 @@ if __name__ == "__main__":
                 X = Xd @ Wd
                 NX = np.transpose(np.random.normal(0.0, 1.0, (len(p_uf), N))) @ Wd
 
-                try:
-                    response_surface.train(X,f)
-                    v,dv = response_surface.predict(NX)
-                    minA, maxA = min(minA, np.mean(v)), max(maxA, np.mean(v))
-                    minB, maxB = min(minB, np.std(v))*0.8, max(maxB, np.std(v)*1.2)
-                    data_list.append([np.mean(v),np.std(v)])
-                except:
-                    print("\033[1;35mError occured. Maybe not enought samples.\033[0m")
-                    data_list.append([None,None])
-                    continue
-                dist_list.append([X[:,0],f])
+                response_surface.train(X,f)
+                v,dv = response_surface.predict(NX)
+                mean_v, std_v = np.mean(v), np.std(v)
+                minA, maxA = min(minA, mean_v), max(maxA, mean_v)
+                minB, maxB = min(minB, std_v)*0.8, max(maxB, std_v*1.2)
+                data_list.append([mean_v, std_v])
+                
+                dist_list.append([NX[:,0],v])
             data_dict[phi][P] = data_list
             dist_dict[phi][P] = dist_list
+            print("%.1f %2.0f %.5f %.5f %.5f %.5f %.5f"%(phi,P,data_list[0][1],data_list[1][1],
+                data_list[2][1],data_list[3][1],data_list[4][1]))
 
     # prepare figures
     figA, AX = get_sub_plots(num="Data Distributions")
@@ -81,8 +79,8 @@ if __name__ == "__main__":
         for p,P in enumerate(P_arr):
             data_list = np.array(data_dict[phi][P])
             dist_list = dist_dict[phi][P]
-            BX[i][p].plot(T_revert, data_list[:,1],'C0')
-            AX[i][p].plot(T_revert, data_list[:,0],'C0')
+            BX[i][p].plot(T_revert, data_list[:,1],color_arr[0])
+            AX[i][p].plot(T_revert, data_list[:,0],color_arr[0])
             for t,T in enumerate(T_arr):
                 height = float((max(dist_list[t][1])-min(dist_list[t][1]))/(maxA-minA)*0.3)
                 b_height = float((np.mean(dist_list[t][1])-min(dist_list[t][1]))/(maxA-minA)*0.3)
@@ -92,19 +90,19 @@ if __name__ == "__main__":
                 bottom = (2-i)*0.3 + 0.05 + (data_list[t,0]-minA)/(maxA-minA)*0.3-b_height
                 plt.figure(num="Data Distributions")
                 ax = plt.axes([left,bottom,width,height],facecolor='none')
-                plt.plot(dist_list[t][0],dist_list[t][1],'C0.',ms=1)
+                plt.plot(dist_list[t][0],dist_list[t][1],color_arr[0]+'.',ms=1)
                 for edge in ['top','right','bottom','left']:
                     ax.spines[edge].set_visible(False)
                 plt.xticks([])
                 plt.yticks([])
+    P_DATA_DICT = deepcopy(data_dict)
 
-    if Type==5:
-        Flag = True
-        Type = 3
     # = = = = = = = = = = = =
     # pmech -> intermediate
-    Legend.append("transition - "+TypeName[Type])
-    cprint("\nPrinting transition - "+TypeName[Type],'g')
+    Legend.append("transition")
+    cprint("\nPrinting transition",'g')
+    figE = plt.figure(figsize=c2i(12,9),num="Elimination")
+
     data_dict, dist_dict = {}, {}
     for idx_phi,phi in enumerate(phi_arr):
         data_dict[phi], dist_dict[phi] = {}, {}
@@ -113,45 +111,37 @@ if __name__ == "__main__":
             data_list, dist_list = [], []
 
             for idx_T,T in enumerate(T_arr):
-                progress((idx_T+idx_P*len(T_arr)+idx_phi*len(T_arr)*len(P_arr))/(len(phi_arr)*len(P_arr)*len(T_arr)))
+                # progress((idx_T+idx_P*len(T_arr)+idx_phi*len(T_arr)*len(P_arr))/(len(phi_arr)*len(P_arr)*len(T_arr)))
                 props['phi'],props['P'],props['T'] = phi,P,T
 
-                if Type==1:
-                    Wd = get_subspace(pmech[1], props, dim)
-                    Wi = normalize(S.transpose() @ Wd)
-                    Xr, f = get_Xy(smech[1], props, s_uf)
-                    X = Xr @ Wi
-                    NX = np.transpose(np.random.normal(0.0, 1.0, (len(s_uf), N))) @ Wi
-                if Type==2:
-                    Wr = get_subspace(smech[1], props, dim)
-                    Wi = S @ Wr
-                    Xd, f = get_Xy(pmech[1], props, p_uf)
-                    X = Xd @ Wi
-                    NX = np.transpose(np.random.normal(0.0, 1.0, (len(p_uf), N))) @ Wi
-                if Type==3:
-                    Wd = get_subspace(pmech[1], props, dim)
-                    Wi = normalize(S.transpose() @ Wd)
-                    Xd, f = get_Xy(pmech[1], props, p_uf)
-                    X = Xd @ S @ Wi
-                    NX = np.transpose(np.random.normal(0.0, 1.0, (len(s_uf), N))) @ Wi
-                if Type==4:
-                    Wr = get_subspace(smech[1], props, dim)
-                    Xr, f = get_Xy(smech[1], props, s_uf)
-                    X = Xr @ S.transpose() @ S @ Wr
-                    NX = np.transpose(np.random.normal(0.0, 1.0, (len(p_uf), N))) @ S @ Wr
-                try:
-                    response_surface.train(X,f)
-                    v,dv = response_surface.predict(NX)
-                    minA, maxA = min(minA, np.mean(v)), max(maxA, np.mean(v))
-                    minB, maxB = min(minB, np.std(v))*0.8, max(maxB, np.std(v)*1.2)
-                    data_list.append([np.mean(v),np.std(v)])
-                except:
-                   print("\033[1;35mError occured. Maybe not enought samples.\033[0m")
-                   data_list.append([None,None])
-                   continue
-                dist_list.append([X[:,0],f])
+                Wd = get_subspace(pmech[1], props, dim)
+                Wi = S.transpose() @ Wd
+                Xd, f = get_Xy(pmech[1], props, p_uf)
+                X = Xd @ S @ Wi
+                NX = np.transpose(np.random.normal(0.0, 1.0, (len(s_uf), N))) @ Wi
+
+                response_surface.train(Xd @ Wd, f)
+                v,dv = response_surface.predict(NX)
+                mean_v, std_v = np.mean(v), np.std(v)
+                minA, maxA = min(minA, mean_v), max(maxA, mean_v)
+                minB, maxB = min(minB, std_v)*0.8, max(maxB, std_v*1.2)
+                data_list.append([mean_v, std_v])
+
+                r1 = np.linalg.norm(Wi[:,0])
+                r2 = std_v/P_DATA_DICT[phi][P][idx_T][1]
+                plt.plot(r1,r2,'k.')
+                # print("%.1f %2.f %4.f %.5f %.5f %.4e"%(phi, P, T, r1, r2, r2-r1))
+
+                dist_list.append([NX[:,0],v])
             data_dict[phi][P] = data_list
             dist_dict[phi][P] = dist_list
+            print("%.1f %2.0f %.5f %.5f %.5f %.5f %.5f"%(phi,P,data_list[0][1],data_list[1][1],
+                data_list[2][1],data_list[3][1],data_list[4][1]))
+
+    plt.xlabel(r"$\|P^T \mathbf{w}_{d,1}\|$")
+    plt.ylabel(r"$\sigma_{r,t}/\sigma_{r,d}$")
+
+    I_DATA_DICT = deepcopy(data_dict)
 
     # prepare figures
     T_revert = np.array([1000./Ti for Ti in T_arr])
@@ -159,8 +149,8 @@ if __name__ == "__main__":
         for p,P in enumerate(P_arr):
             data_list = np.array(data_dict[phi][P])
             dist_list = dist_dict[phi][P]
-            AX[i][p].plot(T_revert, data_list[:,0],'C1')
-            BX[i][p].plot(T_revert, data_list[:,1],'C1')
+            AX[i][p].plot(T_revert, data_list[:,0],color_arr[0]+'--')
+            BX[i][p].plot(T_revert, data_list[:,1],color_arr[0]+'--')
             for t,T in enumerate(T_arr):
                 height = float((max(dist_list[t][1])-min(dist_list[t][1]))/(maxA-minA)*0.3)
                 b_height = float((np.mean(dist_list[t][1])-min(dist_list[t][1]))/(maxA-minA)*0.3)
@@ -170,96 +160,18 @@ if __name__ == "__main__":
                 bottom = (2-i)*0.3 + 0.05 + (data_list[t,0]-minA)/(maxA-minA)*0.3-b_height
                 plt.figure("Data Distributions")
                 ax = plt.axes([left,bottom,width,height],facecolor='none')
-                plt.plot(dist_list[t][0],dist_list[t][1],'C1.',ms=1)
+                plt.plot(dist_list[t][0],dist_list[t][1],color_arr[1]+'o',ms=1,fillstyle="none")
                 for edge in ['top','right','bottom','left']:
                     ax.spines[edge].set_visible(False)
                 plt.xticks([])
                 plt.yticks([])
-
-    if Flag==True:
-        Type = 2
-        # = = = = = = = = = = = =
-        # pmech -> intermediate 2 if necessary
-        Legend.append("transition - "+TypeName[Type])
-        cprint("\nPrinting transition - "+TypeName[Type],'g')
-        data_dict, dist_dict = {}, {}
-        for idx_phi,phi in enumerate(phi_arr):
-            data_dict[phi], dist_dict[phi] = {}, {}
-
-            for idx_P,P in enumerate(P_arr):
-                data_list, dist_list = [], []
-
-                for idx_T,T in enumerate(T_arr):
-                    progress((idx_T+idx_P*len(T_arr)+idx_phi*len(T_arr)*len(P_arr))/(len(phi_arr)*len(P_arr)*len(T_arr)))
-                    props['phi'],props['P'],props['T'] = phi,P,T
-                    
-                    if Type==1:
-                        Wd = get_subspace(pmech[1], props, dim)
-                        Wi = normalize(S.transpose() @ Wd)
-                        Xr, f = get_Xy(smech[1], props, s_uf)
-                        X = Xr @ Wi
-                        NX = np.transpose(np.random.normal(0.0, 1.0, (len(s_uf), N))) @ Wi
-                    if Type==2:
-                        Wr = get_subspace(smech[1], props, dim)
-                        Wi = S @ Wr
-                        Xd, f = get_Xy(pmech[1], props, p_uf)
-                        X = Xd @ Wi
-                        NX = np.transpose(np.random.normal(0.0, 1.0, (len(p_uf), N))) @ Wi
-                    if Type==3:
-                        Wd = get_subspace(pmech[1], props, dim)
-                        Wi = normalize(S.transpose() @ Wd)
-                        Xd, f = get_Xy(pmech[1], props, p_uf)
-                        X = Xd @ S @ Wi
-                        NX = np.transpose(np.random.normal(0.0, 1.0, (len(s_uf), N))) @ Wi
-                    if Type==4:
-                        Wr = get_subspace(smech[1], props, dim)
-                        Xr, f = get_Xy(smech[1], props, s_uf)
-                        X = Xr @ S.transpose() @ S @ Wr
-                        NX = np.transpose(np.random.normal(0.0, 1.0, (len(p_uf), N))) @ S @ Wr
-                    try:
-                        response_surface.train(X,f)
-                        v,dv = response_surface.predict(NX)
-                        minA, maxA = min(minA, np.mean(v)), max(maxA, np.mean(v))
-                        minB, maxB = min(minB, np.std(v))*0.8, max(maxB, np.std(v)*1.2)
-                        data_list.append([np.mean(v),np.std(v)])
-                    except:
-                       print("\033[1;35mError occured. Maybe not enought samples.\033[0m")
-                       data_list.append([None,None])
-                       continue
-                    dist_list.append([X[:,0],f])
-                data_dict[phi][P] = data_list
-                dist_dict[phi][P] = dist_list
-
-        # prepare figures
-        T_revert = np.array([1000./Ti for Ti in T_arr])
-        for i,phi in enumerate(phi_arr):
-            for p,P in enumerate(P_arr):
-                data_list = np.array(data_dict[phi][P])
-                dist_list = dist_dict[phi][P]
-                AX[i][p].plot(T_revert, data_list[:,0],'C3')
-                BX[i][p].plot(T_revert, data_list[:,1],'C3')
-                for t,T in enumerate(T_arr):
-                    height = float((max(dist_list[t][1])-min(dist_list[t][1]))/(maxA-minA)*0.3)
-                    b_height = float((np.mean(dist_list[t][1])-min(dist_list[t][1]))/(maxA-minA)*0.3)
-                    width = (max(dist_list[t][0])-min(dist_list[t][0]))/6*0.03
-                    l_width = (0-min(dist_list[t][0]))/6*0.03
-                    left = p*0.3 + 0.05 + (1000./T-minT)/(maxT-minT)*0.3-l_width
-                    bottom = (2-i)*0.3 + 0.05 + (data_list[t,0]-minA)/(maxA-minA)*0.3-b_height
-                    plt.figure("Data Distributions")
-                    ax = plt.axes([left,bottom,width,height],facecolor='none')
-                    plt.plot(dist_list[t][0],dist_list[t][1],'C3.',ms=1)
-                    for edge in ['top','right','bottom','left']:
-                        ax.spines[edge].set_visible(False)
-                    plt.xticks([])
-                    plt.yticks([])
-        Type = 5
 
     # = = = = = = = = = = = =
     # smech
     Legend.append(smech[1])
     m,name,mech = smech
     cprint("\nPrinting %s"%name,'g')
-    
+    figC = plt.figure(figsize=c2i(12,9),num="Coupling")
     # Load data
     data_dict, dist_dict = {}, {}
     for idx_phi,phi in enumerate(phi_arr):
@@ -269,7 +181,7 @@ if __name__ == "__main__":
             data_list, dist_list = [], []
 
             for idx_T,T in enumerate(T_arr):
-                progress((idx_T+idx_P*len(T_arr)+idx_phi*len(T_arr)*len(P_arr))/(len(phi_arr)*len(P_arr)*len(T_arr)))
+                # progress((idx_T+idx_P*len(T_arr)+idx_phi*len(T_arr)*len(P_arr))/(len(phi_arr)*len(P_arr)*len(T_arr)))
                 props['phi'],props['P'],props['T'] = phi,P,T
                 
                 Wr = get_subspace(smech[1], props, dim)
@@ -277,19 +189,30 @@ if __name__ == "__main__":
                 X = Xr @ Wr
                 NX = np.transpose(np.random.normal(0.0, 1.0, (len(s_uf), N))) @ Wr
 
-                try:
-                    response_surface.train(X,f)
-                    v,dv = response_surface.predict(NX)
-                    minA, maxA = min(minA, np.mean(v)), max(maxA, np.mean(v))
-                    minB, maxB = min(minB, np.std(v))*0.8, max(maxB, np.std(v)*1.2)
-                    data_list.append([np.mean(v),np.std(v)])
-                except:
-                    print("\033[1;35mError occured. Maybe not enought samples.\033[0m")
-                    data_list.append([None,None])
-                    continue
-                dist_list.append([X[:,0],f])
+                response_surface.train(X, f)
+                v,dv = response_surface.predict(NX)
+                mean_v, std_v = np.mean(v), np.std(v)
+                minA, maxA = min(minA, mean_v), max(maxA, mean_v)
+                minB, maxB = min(minB, std_v)*0.8, max(maxB, std_v*1.2)
+                data_list.append([mean_v, std_v])
+
+                Wd = get_subspace(pmech[1], props, dim)
+                Wi = S.transpose() @ Wd
+                r1 = np.sqrt(np.dot(Wi[:,0],Wr[:,0]))
+                r2 = std_v/I_DATA_DICT[phi][P][idx_T][1]
+                
+                plt.plot(r1, r2, color_arr[idx_T]+'.')
+                # print("%.1f %2.f %4.f %.5f %.5f %.4e"%(phi, P, T, r1, r2, r1-r2))
+
+                dist_list.append([NX[:,0],v])
             data_dict[phi][P] = data_list
             dist_dict[phi][P] = dist_list
+            print("%.1f %2.0f %.5f %.5f %.5f %.5f %.5f"%(phi,P,data_list[0][1],data_list[1][1],
+                data_list[2][1],data_list[3][1],data_list[4][1]))
+
+    plt.xlabel(r"$\sqrt{P^T \mathbf{w}_{d,1}\cdot \mathbf{w}_{s,1}}$")
+    plt.ylabel(r"$\sigma_{r,s}/\sigma_{r,t}$")
+    S_DATA_DICT = deepcopy(data_dict)
 
     # prepare figures
     T_revert = np.array([1000./Ti for Ti in T_arr])
@@ -297,8 +220,8 @@ if __name__ == "__main__":
         for p,P in enumerate(P_arr):
             data_list = np.array(data_dict[phi][P])
             dist_list = dist_dict[phi][P]
-            AX[i][p].plot(T_revert, data_list[:,0],'C2')
-            BX[i][p].plot(T_revert, data_list[:,1],'C2')
+            AX[i][p].plot(T_revert, data_list[:,0],color_arr[1])
+            BX[i][p].plot(T_revert, data_list[:,1],color_arr[1])
             for t,T in enumerate(T_arr):
                 height = float((max(dist_list[t][1])-min(dist_list[t][1]))/(maxA-minA)*0.3)
                 b_height = float((np.mean(dist_list[t][1])-min(dist_list[t][1]))/(maxA-minA)*0.3)
@@ -308,14 +231,19 @@ if __name__ == "__main__":
                 bottom = (2-i)*0.3 + 0.05 + (data_list[t,0]-minA)/(maxA-minA)*0.3-b_height
                 plt.figure("Data Distributions")
                 ax = plt.axes([left,bottom,width,height],facecolor='none')
-                plt.plot(dist_list[t][0],dist_list[t][1],'C2.',ms=1)
+                plt.plot(dist_list[t][0],dist_list[t][1],color_arr[1]+'.',ms=1)
                 for edge in ['top','right','bottom','left']:
                     ax.spines[edge].set_visible(False)
                 plt.xticks([])
                 plt.yticks([])
     
-    set_sub_plots(AX, r'1000/T, $K^{-1}$', r'$\log(\tau)$', Legend, xlim=[minT,maxT],ylim=[minA,maxA])
-    set_sub_plots(BX, r'1000/T, $K^{-1}$', r'$\sigma of \log(\tau)$',Legend, xlim=[minT,maxT],ylim=[minB,maxB])
-    save_figure(figA, figs_dir+'prop_%s_%s_Dist_%d.png'%(pmech[1],smech[1],Type))
-    save_figure(figB, figs_dir+'prop_%s_%s_Sigm_%d.png'%(pmech[1],smech[1],Type))
+    print()
+    cprint("Setting plots", 'g')
+    set_sub_plots(AX, r'1000/T, $K^{-1}$', r'$\log(IDT[s])$', Legend, xlim=[minT,maxT],ylim=[minA,maxA])
+    set_sub_plots(BX, r'1000/T, $K^{-1}$', r'$\sigma_r$',Legend, xlim=[minT,maxT],ylim=[minB,maxB])
+    cprint("Saving figures", 'g')
+    save_figure(figA, figs_dir+'prop_%s_%s_Dist.png'%(pmech[1],smech[1]))
+    save_figure(figB, figs_dir+'prop_%s_%s_Sigm.eps'%(pmech[1],smech[1]))
+    save_figure(figC, figs_dir+'prop_%s_%s_Coup.eps'%(pmech[1],smech[1]))
+    save_figure(figE, figs_dir+'prop_%s_%s_Elim.eps'%(pmech[1],smech[1]))
     plt.show()
