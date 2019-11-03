@@ -4,7 +4,7 @@
 # Sensitivity Analysis: sa
 # Monte Carlo Sampling: mc
 
-mech = "DME2000"
+mech = "DME"
 
 # configuration
 config:
@@ -91,6 +91,9 @@ propagation_err:
 # check
 check:
 	python3 src/check.py ${mech}
+
+figure:
+	python3 src/makeFigure.py $(mech)
 
 # tools: clean
 clean:

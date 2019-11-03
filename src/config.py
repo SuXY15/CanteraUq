@@ -10,9 +10,38 @@ if len(sys.argv)<2:
 mech = sys.argv[1]
 
 if __name__ == "__main__":
+    if mech == "H2":
+        UF = 0.
+        pdiff = 5e-3
+        maxt = 1e-2          # max time for json writer
+        samplingSize = 100  # sampling size
+
+        mech_dir = "mech/H2/"
+        comp_dir = "data/H2_comp/" # comparation data
+        sens_dir = "data/H2_sens/" # sensitivity data
+        acts_dir = "data/H2_acts/" # active subspace data
+        resp_dir = "data/H2_resp/" # response surface data
+        figs_dir = "data/H2_figs/" # figures
+        # mechanisms
+        mech_arr = ["H2", "H2fake"]
+        
+        # conditions
+        phi_arr=[0.5, 1.0, 1.5]
+        P_arr = [1.0, 10.0, 20.0]
+        T_arr = [1200., 1300., 1400., 1500., 1600.]
+        props = {'T': 1200.,                # Temperature
+                 'P': 10.,                  # Pressure
+                 'phi': 1.0,                # equivalence ratio
+                 'air':'O2:1.0,N2:3.76',    # air components
+                 'fuel':'H2:1.0',      # fuel components
+                 'type':'UV',               # sim type
+                 'tot': .1,                # total time
+                 'UF': UF,
+             }
+
     # = = = = = = = = = =
     # DMEzhao
-    if mech == "DME":
+    elif mech == "DME":
         UF = 5.             # Uncertainty factor
         pdiff = 5e-3        # difference interval for sensitivity
         maxt = 5e-2         # max time for json writer
@@ -42,8 +71,9 @@ if __name__ == "__main__":
                  'fuel':'CH3OCH3:1.0',      # fuel components
                  'type':'UV',               # sim type
                  'tot': 10.,                # total time
+                 'UF': UF,
              }
-    
+             
     # = = = = = = = = = =
     # DME2000
     elif mech == "DME2000":
@@ -76,6 +106,7 @@ if __name__ == "__main__":
                  'fuel':'CH3OCH3:1.0',      # fuel components
                  'type':'UV',               # sim type
                  'tot': 10.,                # total time
+                 'UF': UF,
              }
     elif mech == "JP10":
         raise Exception("JP10 not defined.")

@@ -63,17 +63,17 @@ def curv(idx=[]):
     ax1 = fig.add_subplot(111)
     ax1.plot(data[:,0], data[:,1], 'k-')
     ax1.set_ylabel(r'$N_{S}$')
-    ax1.set_xlabel('threshold '+r'$\varepsilon$')
+    ax1.set_xlabel(r'$\varepsilon$')
 
     ax2 = ax1.twinx()
     ax2.plot(data[:,0], data[:,2], 'r--')
     ax2.plot(data[idx,0],data[idx,2],'ro',ms=4)
     ax2.set_yscale(r'log')
-    ax2.set_ylabel(r'$err_{max}$')
+    ax2.set_ylabel(r'$err_{\max}$')
     if len(idx)==0:
-        save_figure(fig, path=figs_dir+'DRG_curv.png')
+        save_figure(fig, path=figs_dir+'DRG_curv.eps')
     else:
-        save_figure(fig, path=figs_dir+'DRG.png')
+        save_figure(fig, path=figs_dir+'DRG.eps')
     plt.show()
 
 if __name__ == "__main__":

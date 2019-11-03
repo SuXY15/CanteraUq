@@ -72,25 +72,26 @@ class NerualNetworkApproximation():
         return fig1
 
 def fitting_plots(x, xf, xp, v, vf, vp, NX, NP):
-    fig1 = plt.figure("Training and Validation",figsize=c2i(12,9))
+    fig1 = plt.figure("Training and Validation",figsize=c2i(12,6))
     # plt.title("Training and Validation")
-    plt.plot(xf,xp,'C0o',ms=4,fillstyle='none')
-    plt.plot(vf,vp,'C1o',ms=4,fillstyle='none')
+    plt.plot(xf,xp,'kv',ms=6,fillstyle='none')
+    plt.plot(vf,vp,'r^',ms=6,fillstyle='none')
     fmin, fmax = np.min(xf), np.max(xf)
     plt.plot([fmin,fmax],[fmin,fmax],'k--')
-    plt.xlabel(r'$\log(\tau_{real})$')
-    plt.ylabel(r'$\log(\tau_{prediction})$')
-    plt.legend(['train','valid'],frameon=False)
+    plt.xlabel(r'$\log_{10}(\tau_{train})$')
+    plt.ylabel(r'$\log_{10}(\tau_{prediction})$')
+    plt.legend(['train','valid'], loc='lower right',bbox_to_anchor=(1.0,-0.1),frameon=False)
 
-    fig2 = plt.figure("Response surface prediction",figsize=c2i(12,9))
+    fig2 = plt.figure("Response surface prediction",figsize=c2i(12,6))
     # plt.title("Response surface prediction")
-    plt.plot(NX[:,0],NP,'ko',ms=.8,fillstyle='full')
-    plt.plot(x[:,0],xp,'C0o',ms=4,fillstyle='none')
-    plt.plot(v[:,0],vp,'C1o',ms=4,fillstyle='none')
+    plt.plot(NX[:,0],NP,'k.',ms=.4)
+    plt.plot(x[:,0],xp,'kv',ms=6,fillstyle='none')
+    plt.plot(v[:,0],vp,'r^',ms=6,fillstyle='none')
 
-    plt.xlabel(r'$X_1$')
-    plt.ylabel(r'$\log(\tau_{prediction})$')
-    plt.legend(["samples","train","valid"],frameon=False)
+    plt.xlabel(r'$\mathbf{w}_1^T \mathbf{x}$')
+    plt.ylabel(r'$\log_{10}(\rm{IDT}[s])$')
+    plt.ylim([-4,-1])
+    plt.legend(["samples","train","valid"], loc='lower right', bbox_to_anchor=(1.0,-0.1),frameon=False)
     return fig1, fig2
 
 def load_training_set(file_name):
@@ -110,7 +111,7 @@ def compare_gradients(pdx, rdx):
     pdx = pdx/np.max(pdx)
     cos = [cosine(rdx[i],pdx[i]) for i in range(len(rdx))]
     co2 = [cosine(rdx[:,d],pdx[:,d]) for d in range(len(rdx[0]))]
-    print(pdx.shape,rdx.shape, "%.6f,%.6f,%.6f"%(co2[0],co2[1],co2[2]))
+    print(pdx.shape,rdx.shape, "%.6f"%(co2[0]))
 
     fig = plt.figure("Gradients Comparison")
     plt.title("Gradients Comparison")
@@ -202,8 +203,8 @@ def train(dim=3,order=3,N=50000,method=''):
     dist.plot.kde(ax=ax, legend=False, color='b', lw=1)
     dist.plot.hist(density=True, ax=ax, bins=32, color='b', histtype='step')
 
-    plt.xlim([-2.5, -0.5])
-    plt.xlabel(r'$\log_{10}({IDT}[s])$')
+    plt.xlim([-2.3, -0.6])
+    plt.xlabel(r'$\log_{10}(\tau)$')
     plt.ylabel(r'Normalized Histogram')
     plt.legend(["samples", "train", "predict"], frameon=False)
     save_figure(fig1, figs_dir+"resp_train&valid.eps")
@@ -326,7 +327,7 @@ def distribution(dim=3,N=50000):
                     plt.xticks([])
                     plt.yticks([])
 
-        set_sub_plots(AX, r'1000/T, $K^{-1}$', r'$\log_{10}(IDT[s])$', [name],
+        set_sub_plots(AX, r'1000/T, $K^{-1}$', r'$\log_{10}(\tau)$', [name],
                             xlim=[minT,maxT],ylim=[minA,maxA])
         save_figure(figA, path=figs_dir+'resp_Distribution_%s.pdf'%name)
     plt.show()
@@ -431,9 +432,9 @@ def predict(dim=3,order=2,N=50000):
                 BX[i][p].plot(1000./np.array(T_arr),data_list[:,1],color_arr[m]+"-"+symbol_arr[m])
                 CX[i][p].plot(1000./np.array(T_arr),data_list[:,2],color_arr[m]+"-"+symbol_arr[m])
     # figure setting
-    set_sub_plots(AX, r'1000/T, $K^{-1}$', r'$\log(IDT[s])$', mech_arr, ylim=[minA,maxA])
-    set_sub_plots(BX, r'1000/T, $K^{-1}$', r'$\sigma_r$', mech_arr, ylim=[minB,maxB])
-    set_sub_plots(CX, r'1000/T, $K^{-1}$', r'$N_{train}$', mech_arr, ylim=[minC,maxC])
+    set_sub_plots(AX, r'1000/T (K$^{-1}$)', r'$\log_{10}(\tau)$', mech_arr, ylim=[minA,maxA])
+    set_sub_plots(BX, r'1000/T (K$^{-1}$)', r'$\sigma_r$', mech_arr, ylim=[minB,maxB])
+    set_sub_plots(CX, r'1000/T (K$^{-1}$)', r'$N_{train}$', mech_arr, ylim=[minC,maxC])
     save_figure(figA, figs_dir+'resp_IDT.eps')
     save_figure(figB, figs_dir+'resp_sigma.eps')
     save_figure(figC, figs_dir+'resp_check.eps')

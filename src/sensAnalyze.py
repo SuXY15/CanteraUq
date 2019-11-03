@@ -77,13 +77,18 @@ if __name__=="__main__":
             # accum for main reactions
             rank = np.argsort(-abs(sdata))
             if np.sum(np.abs(sdata))>0.5:
-                pos = accum(sdata[rank], sum_limit=0.99 if props['T']<1200 else 0.5)
+                pos = accum(sdata[rank], sum_limit=0.99)
                 pRank = parentRank(rank[0:pos],eqs,eqs0)
                 main_reaction_m.update(pRank)
             print("%s %.1f, %.0fatm, %.0fK: %d %d"%
                 (name, props['phi'], props['P'], props['T'], len(main_reaction_m),len(main_reaction)))
         main_reaction.update(main_reaction_m)
     main_reaction = sorted(list(main_reaction))
+
+    for i in main_reaction:
+        print(i, eqs0[i])
+
+    print(main_reaction)
 
     # = = = = = = = = = =
     # show results
@@ -105,6 +110,7 @@ if __name__=="__main__":
         tdata_arr = np.array([normalize(d['tdata']) for d in data_arr])
         sdata_arr = np.array([normalize(d['sdata']) for d in data_arr])
         err_arr = []
+        print(x)
         for t,T in enumerate(T_arr):
             fig, AX = get_sub_plots("Sensitivity Comparation, %s, T=%.0fK"%(name,T))
             props_tarr = [props_arr[i] for i,p in enumerate(props_arr) if p['T'] == T]
@@ -119,8 +125,8 @@ if __name__=="__main__":
                 AX[i,p].bar(x+0.2,sdata_tarr[pi][rank],width=0.4)
                 # if i==2 and p==1: plt.xticks(x,xtick,rotation=45)
                 err_arr.append(1-np.dot(tdata_tarr[pi],sdata_tarr[pi]))
-            set_sub_plots(AX, xlabel=r'sensitive reactions', ylabel=r'sensitivity',
-                    legend=["brute force","adjoint"],ylim=[-1.,1.])
-            save_figure(fig, path=figs_dir+'/sens_comp/%s_T=%.0fK.eps'%(name,T))
+            set_sub_plots(AX, xlabel=r'Reaction Index', ylabel=r'$S_{\tau}$',
+                    legend=["brute force","adjoint"], ylim=[-1.,1.])
+            save_figure(fig, path=figs_dir+'/sens_comp/sens_comp_%s_T=%.0fK.eps'%(name,T))
         cprint("Mean err: %.3e, Max err: %.3e"%(np.mean(err_arr), np.max(err_arr)), 'g')
     plt.show()

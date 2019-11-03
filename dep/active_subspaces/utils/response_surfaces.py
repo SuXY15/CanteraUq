@@ -163,6 +163,26 @@ class PolynomialApproximation(ResponseSurface):
 
         return f, df
 
+    def mean(self, W):
+        C = W.T @ W
+        return self.poly_weights[0][0] + (self.H @ C).trace()
+        
+    def std(self, W):
+        """ standard variation
+        Parameters
+        ----------
+        W : ndarray
+            transform matrix, dims (n * r)
+        Returns
+        -------
+        std : double
+            standard variation of response surface, treat all input as multi-normal 
+            independent distribution
+        """
+        C = W.T @ W
+        var = self.g.T @ C @ self.g + (self.H @ C @ self.H @ C).trace()
+        return np.sqrt(var)
+
 class RadialBasisApproximation(ResponseSurface):
     """Approximate a multivariate function with a radial basis.
     

@@ -2,5 +2,7 @@ data/
 mech/
 !mech/DME
 !mech/DME2000
+!mech/H2
 *__pycache__*
 local
+*.DS_Store*

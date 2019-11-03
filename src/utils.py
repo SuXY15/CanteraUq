@@ -19,8 +19,9 @@ from copy import deepcopy
 t0 = time.time()
 threadLock = threading.Lock()
 np.random.seed(0x532E532E53>>7)
-color_arr = ['k','r','b','c','m']
-symbol_arr = ['s','o','d','v','^']
+line_arr = ('-','--','-.',':')
+color_arr = ('k','r','b','m')
+symbol_arr = ('s','o','v','^')
 
 # = = = = = = = = = =
 # message in cli
@@ -189,7 +190,7 @@ def c2i(*tupl):
 def get_sub_plots(num):
     """ Get len(phi_arr)xlen(P_arr) subplots, 3x3 recommended
     """
-    fig, axs = plt.subplots(len(phi_arr), len(P_arr), figsize=c2i(20,15), num=num)
+    fig, axs = plt.subplots(len(P_arr), len(phi_arr), figsize=c2i(25.8,15), num=num)
     fig.subplots_adjust(left=0.05,bottom=0.05,top=0.95,right=0.95,hspace=0.,wspace=0.)
     fig.canvas.set_window_title(num)
     return fig, axs
@@ -208,7 +209,7 @@ def set_sub_plots(axs, xlabel, ylabel, legend, xlim=None, ylim=None, xscale=None
             if ylim:   axs[i,p].set_ylim(ylim)
             if xscale: axs[i,p].set_xscale(xscale)
             if yscale: axs[i,p].set_yscale(yscale)
-            axs[i,p].set_title(r"$\phi=%.1f, P=%.0fatm$"%(phi,P), pad=-20)
+            axs[p,i].set_title(r"$\phi=%.1f, P=%.0fatm$"%(phi,P), pad=-20)
 
 def save_figure(fig, path=None):
     """ Save figure with handle
@@ -263,8 +264,8 @@ def get_Xy(name, props, uf):
     props_arr = [sd['props'] for sd in sens_data_arr]
     idt = np.array([props['idt'] for props in props_arr])
     idx = [i for i,iidt in enumerate(idt) if iidt>0]
-    f = np.transpose([np.log10(idt[idx]),])
-    X_raw = [3.*np.log(props_arr[i]['factor'])/np.log(uf) for i in idx]
+    f = np.transpose([np.log10(idt[idx[:360]]),])
+    X_raw = [3.*np.log(props_arr[i]['factor'])/np.log(uf) for i in idx[:360]]
     return X_raw, f # shape(n, d), shape(n, 1)
 
 def load_mech(mech='gri30.cti'):
@@ -358,11 +359,11 @@ def get_ign_sens(gas, props, name=''):
         r.add_sensitivity_reaction(i)
 
     # set the tolerances for the solution and for the sensitivity coefficients
-    if props['T']>=1200:
-        sim.rtol = 1.0e-9
-        sim.atol = 1.0e-12
-        sim.rtol_sensitivity = 1.0e-9
-        sim.atol_sensitivity = 1.0e-12
+    # if props['T']>=1200:
+    #     sim.rtol = 1.0e-9
+    #     sim.atol = 1.0e-12
+    #     sim.rtol_sensitivity = 1.0e-9
+    #     sim.atol_sensitivity = 1.0e-12
 
     sens = []
     states = ct.SolutionArray(gas, extra=['t'])
@@ -433,6 +434,15 @@ def get_fs_sens(gas, props, name=''):
     flame_speed = sim.u[0]
     return flame_speed, sens
 
+def set_factors(gas, factors):
+    """
+    Set factors for cantera gas simulators
+    """
+    gas.set_multiplier(1.0)
+    for i,factor in enumerate(factors):
+        gas.set_multiplier(factor, i)
+    return gas
+
 # loading configs
 if len(sys.argv)>1:
     config_file = 'data/'+sys.argv[1]+".config"
@@ -442,5 +452,7 @@ if len(sys.argv)>1:
         mechs = get_mechs(mech_dir,mech_arr)
         conditions = get_conditions(phi_arr,P_arr,T_arr)
         cprint("%s loaded"%config_file,'g')
+        props['UF'] = UF
+        props['S'] = samplingSize
     except:
         cprint("Load %s failed, please check."%config_file,'r')

@@ -79,12 +79,13 @@ if __name__=="__main__":
         if len(rela_err):
             cprint("%s, max: %.3f%% mean: %.3f%%"%(name, np.max(rela_err)*100, np.mean(rela_err)*100))
 
+    print(mech_arr)
     # = = = = = = = = = =
     # figure setting
-    set_sub_plots(AX, xlabel=r'1000/T, $K^{-1}$', ylabel=r'IDT, s',
+    set_sub_plots(AX, xlabel=r'$1000/T$ (K$^{-1}$)', ylabel=r'$\tau$ (s)',
                     legend=mech_arr,ylim=[minA,maxA], yscale=r'log')
-    set_sub_plots(BX, xlabel=r'1000/T, $K^{-1}$', ylabel=r'$(\tau_s-\tau_d)/\tau_d$',
+    set_sub_plots(BX, xlabel=r'$1000/T$ (K$^{-1}$)', ylabel=r'$(\tau_s-\tau_d)/\tau_d$',
                     legend=mech_arr[1:],ylim=[minB,maxB], yscale=r'log')
-    save_figure(figA, path=figs_dir+'compare_IDT.png')
-    save_figure(figB, path=figs_dir+'compare_err.png')
+    save_figure(figA, path=figs_dir+'compare_IDT.eps')
+    save_figure(figB, path=figs_dir+'compare_err.eps')
     plt.show()

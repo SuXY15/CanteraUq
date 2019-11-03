@@ -55,12 +55,18 @@ if __name__ == "__main__":
                 X = Xd @ Wd
                 NX = np.transpose(np.random.normal(0.0, 1.0, (len(p_uf), N))) @ Wd
 
-                response_surface.train(X,f)
+                response_surface.train(X, f)
+                
                 v,dv = response_surface.predict(NX)
-                mean_v, std_v = np.mean(v), np.std(v)
+                # mean_v, std_v = np.mean(v), np.std(v)
+                
+                # print()
+                mean_v, std_v = response_surface.mean(Wd), response_surface.std(Wd)
+                # print("%.4f %.4f"%((mean_v-np.mean(v))/mean_v, (std_v-np.std(v))/std_v))
+
                 minA, maxA = min(minA, mean_v), max(maxA, mean_v)
                 minB, maxB = min(minB, std_v)*0.8, max(maxB, std_v*1.2)
-                data_list.append([mean_v, std_v])
+                data_list.append([mean_v, std_v, np.mean(v), np.std(v)])
                 
                 dist_list.append([NX[:,0],v])
             data_dict[phi][P] = data_list
@@ -121,15 +127,23 @@ if __name__ == "__main__":
                 NX = np.transpose(np.random.normal(0.0, 1.0, (len(s_uf), N))) @ Wi
 
                 response_surface.train(Xd @ Wd, f)
+
                 v,dv = response_surface.predict(NX)
-                mean_v, std_v = np.mean(v), np.std(v)
+                
+                # mean_v, std_v = np.mean(v), np.std(v)
+                # print()
+                mean_v, std_v = response_surface.mean(S @ Wi), response_surface.std(S @ Wi)
+                # print("%.4f %.4f"%((mean_v-np.mean(v))/mean_v, (std_v-np.std(v))/std_v))
+
                 minA, maxA = min(minA, mean_v), max(maxA, mean_v)
                 minB, maxB = min(minB, std_v)*0.8, max(maxB, std_v*1.2)
-                data_list.append([mean_v, std_v])
+                data_list.append([mean_v, std_v, np.mean(v), np.std(v)])
 
                 r1 = np.linalg.norm(Wi[:,0])
                 r2 = std_v/P_DATA_DICT[phi][P][idx_T][1]
-                plt.plot(r1,r2,'k.')
+                r3 = np.std(v)/P_DATA_DICT[phi][P][idx_T][3]
+                plt.scatter(r1, r2, marker='o', color='', edgecolors='r')
+                plt.scatter(r1, r3, marker='o', color='', edgecolors='k')
                 # print("%.1f %2.f %4.f %.5f %.5f %.4e"%(phi, P, T, r1, r2, r2-r1))
 
                 dist_list.append([NX[:,0],v])
@@ -190,11 +204,16 @@ if __name__ == "__main__":
                 NX = np.transpose(np.random.normal(0.0, 1.0, (len(s_uf), N))) @ Wr
 
                 response_surface.train(X, f)
+                
                 v,dv = response_surface.predict(NX)
-                mean_v, std_v = np.mean(v), np.std(v)
+
+                # print()
+                mean_v, std_v = response_surface.mean(Wr), response_surface.std(Wr)
+                # print("%.4f %.4f"%((mean_v-np.mean(v))/mean_v, (std_v-np.std(v))/std_v))
+
                 minA, maxA = min(minA, mean_v), max(maxA, mean_v)
                 minB, maxB = min(minB, std_v)*0.8, max(maxB, std_v*1.2)
-                data_list.append([mean_v, std_v])
+                data_list.append([mean_v, std_v, np.mean(v), np.std(v)])
 
                 Wd = get_subspace(pmech[1], props, dim)
                 Wi = S.transpose() @ Wd

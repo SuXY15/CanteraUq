@@ -112,8 +112,8 @@ if __name__=="__main__":
         plt.plot(pdiff_arr,1-np.array(lr_arr), color_arr[m]+'-')
         plt.xscale(r'log')
         plt.yscale(r'log')
-        plt.xlabel(r'perturbation $\delta$')
-        plt.ylabel(r'relative error')
+        plt.xlabel(r'$\delta$')
+        plt.ylabel(r'$1-I$')
         plt.legend(mech_arr,frameon=False)
 
         # plot
@@ -123,7 +123,7 @@ if __name__=="__main__":
         plt.bar(x+0.2,hap,width=0.4)
         plt.xticks(x,xtick,rotation=45)
         plt.xlabel(r'Reaction Index')
-        plt.ylabel(r'Sensitivity')
+        plt.ylabel(r'$S_{\tau}$')
         plt.legend([r'brute force',r'adjoint'],loc="upper right",frameon=False)
         save_figure(fig2, path=figs_dir+'calib_%s_sens.eps'%name)
 

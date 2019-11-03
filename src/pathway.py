@@ -38,8 +38,8 @@ def Tcurv_mech(props, ax1setting, ax2setting):
         ax1.plot(ax2t,[ax2T[0],ax2T[0]],'k-',lw=0.5); ax1.plot([ax2t[0],ax2t[0]],ax2T,'k-',lw=0.5)
         ax1.plot(ax2t,[ax2T[1],ax2T[1]],'k-',lw=0.5); ax1.plot([ax2t[1],ax2t[1]],ax2T,'k-',lw=0.5)
     ax1.legend(legend, frameon=False, ncol = 2, loc='upper center')
-    ax1.set_xlabel(r'Time / s')
-    ax1.set_ylabel(r'Temperature / K')
+    ax1.set_xlabel(r'Time (s)')
+    ax1.set_ylabel(r'Temperature (K)')
     save_figure(fig, figs_dir+'compare_Tcurv_mech_%.0f.eps'%props['T'])
 
 if __name__=="__main__":

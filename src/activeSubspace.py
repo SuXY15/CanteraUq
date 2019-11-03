@@ -5,8 +5,8 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-name = "DMEsk59"
-mech = "mech/DME2000/DMEsk59.cti"
+name = "H2"
+mech = "mech/H2/H2.cti"
 # phi_arr=[0.5]
 # P_arr = [10.]
 # T_arr = [650.]
@@ -47,10 +47,10 @@ def calculator(name, gas, props_arr, file_name):
 def sampling():
     # load mech and uncertainty
     gas = load_mech(mech)
-    uncetainty_factors = load_uncertainty(mech, UF=UF)
+    uncetainty_factors = load_uncertainty(mech[:-3]+'txt', UF=UF)
     
     # load main reactions
-    main_reaction_idx = set(json_reader(sens_dir+name+"_mr.json")['mr'])
+    main_reaction_idx = set(json_reader(sens_dir+name+"_mr.json")[0]['mr'])
     props['mri'] = [int(i) for i in main_reaction_idx]
     for props['phi'],props['P'],props['T'] in conditions:
         file_name = acts_dir+"%s_UF=%.1f_phi=%.1f_p=%.1fatm_T=%.1fK_s=%d.json"%(name,
@@ -71,7 +71,7 @@ def sampling():
 
 def show(show_flag=0):
     m,name,mech = mechs[0]
-    props['phi'],props['P'],props['T'] = 1.0, 1.0, 1000.0
+    props['phi'],props['P'],props['T'] = 1.0, 10.0, 1000.0
 
     # loading
     gas = load_mech(mech)
@@ -104,41 +104,52 @@ def show(show_flag=0):
     graph_rank = np.arange(1,21)
     tick = np.arange(0,21,2)
     fig1 = plt.figure("Eigenvalue",figsize=c2i(12,9))
-    # plt.title("Eigenvalue of subspace")
     plt.plot(graph_rank,S[graph_rank-1], marker='o', markerfacecolor='none', color='k')
     plt.xticks(tick)
     plt.yscale(r'log')
     plt.xlabel(r'Eigenvalue Number')
     plt.ylabel(r'Eigenvalue')
-    save_figure(fig1, path=figs_dir+'acts_Eigenvalue.eps')
+    save_figure(fig1, path=figs_dir+'acts_Eigenvalue.png')
     
     # figure(2): one dimensional projection
     fig2 = plt.figure(r"$\mathbf{w}_1$ projection",figsize=c2i(12,9))
-    # plt.title("w1 projection of subspace")
     plt.scatter(w1x, np.log10(idt), marker='o', color='', edgecolors='k')
     plt.xlabel(r'$\mathbf{w}_1^T \mathbf{x}$')
-    plt.ylabel(r'$\log_{10}({IDT}[s])$')
-    save_figure(fig2, path=figs_dir+'acts_W1projection.eps')
+    plt.ylabel(r'$\log_{10}(IDT)$')
+    save_figure(fig2, path=figs_dir+'acts_W1projection.png')
     
     # figure(3): w1 components
-    x,y = np.transpose([[i,v] for i,v in enumerate(VT[0]) if abs(v)>0.1])
+    x,y = np.transpose([[i,v] for i,v in enumerate(VT[0]) if abs(v)>0.05])
+    
+    eqs = [r.equation for r in gas.reactions()]
+    sVT = sorted([(i,v) for i,v in enumerate(VT[0])], key=lambda vi:-abs(vi[1]))
+
     fig3 = plt.figure("w1 components",figsize=c2i(12,9))
-    # plt.title("w1 components of subspace")
     markerline, stemlines, baseline = plt.stem(x,y, markerfmt='ko', linefmt='k-.',basefmt='gray')
     plt.plot([1,gas.n_reactions],[0,0],'-',color='gray')
     plt.setp(markerline, color='k', markerfacecolor='none', linewidth=2)
     plt.xlabel(r'Reaction Index')
     plt.ylabel(r'$\mathbf{w}_1$ components')
     plt.xlim([1, gas.n_reactions])
-    save_figure(fig3, path=figs_dir+'acts_W1components.eps')
     
-    # # figure(4): histogram
+    for i in range(3):
+        print(i, sVT[i][0], sVT[i][1], eqs[sVT[i][0]])
+    
+    save_figure(fig3, path=figs_dir+'acts_W1components.png')
+    
+    # figure(4): histogram
     # fig4 = plt.figure("histogram",figsize=c2i(12,9))
     # plt.title("histogram of IDT distribution")
+    fig4, ax = plt.subplots(figsize=c2i(12,9))
     # plt.hist(np.log10(idt),bins=20,histtype='step')
-    # plt.xlabel(r'$\log_{10}({IDT}[s])$')
-    # plt.ylabel(r'Normalized Histogram')
-    # save_figure(fig4, path=figs_dir+'acts_Histogram.png')
+    import pandas as pd
+    dist = pd.DataFrame(np.log10(idt))
+    dist.plot.kde(ax=ax, legend=False, color='k', lw=1)
+    dist.plot.hist(density=True, ax=ax, bins=32, color='k', histtype='step', legend=False)
+
+    plt.xlabel(r'$\log_{10}({IDT}[s])$')
+    plt.ylabel(r'Normalized Histogram')
+    save_figure(fig4, path=figs_dir+'acts_Histogram.png')
     
     # # figure(5): scatter
     # fig5 = plt.figure("w1 and w2 projection",figsize=c2i(12,9))
