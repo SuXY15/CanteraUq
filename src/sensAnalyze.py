@@ -77,7 +77,7 @@ if __name__=="__main__":
             # accum for main reactions
             rank = np.argsort(-abs(sdata))
             if np.sum(np.abs(sdata))>0.5:
-                pos = accum(sdata[rank], sum_limit=0.99)
+                pos = accum(sdata[rank], sum_limit=0.99 )#if props['T']<1200 else 0.75)
                 pRank = parentRank(rank[0:pos],eqs,eqs0)
                 main_reaction_m.update(pRank)
             print("%s %.1f, %.0fatm, %.0fK: %d %d"%
@@ -121,12 +121,12 @@ if __name__=="__main__":
             for pi,props in enumerate(props_tarr):
                 i,phi = first(phi_arr,lambda phi: phi==props['phi'])
                 p,P = first(P_arr,lambda P: P==props['P'])
-                AX[i,p].bar(x-0.2,tdata_tarr[pi][rank],width=0.4)
-                AX[i,p].bar(x+0.2,sdata_tarr[pi][rank],width=0.4)
+                AX[p,i].bar(x-0.2,tdata_tarr[pi][rank],width=0.4)
+                AX[p,i].bar(x+0.2,sdata_tarr[pi][rank],width=0.4)
                 # if i==2 and p==1: plt.xticks(x,xtick,rotation=45)
                 err_arr.append(1-np.dot(tdata_tarr[pi],sdata_tarr[pi]))
             set_sub_plots(AX, xlabel=r'Reaction Index', ylabel=r'$S_{\tau}$',
                     legend=["brute force","adjoint"], ylim=[-1.,1.])
-            save_figure(fig, path=figs_dir+'/sens_comp/sens_comp_%s_T=%.0fK.eps'%(name,T))
+            save_figure(fig, path=figs_dir+'/sens_comp/sens_comp_%s_T=%.0fK.png'%(name,T))
         cprint("Mean err: %.3e, Max err: %.3e"%(np.mean(err_arr), np.max(err_arr)), 'g')
     plt.show()

@@ -52,6 +52,8 @@ if __name__=="__main__":
     figA, AX = get_sub_plots(num="IDT comparasion")
     figB, BX = get_sub_plots(num="Relative error")
 
+    mech_names = ['DME55', 'DME42', 'DME40', 'DME30']
+
     for m,name,mech in mechs:
         # loading data
         props_arr = [d['props'] for d in json_reader(comp_dir+name+".json")]
@@ -66,15 +68,16 @@ if __name__=="__main__":
                 idt_arr = np.array([props['idt'] for props in props_parr if props['T'] in T_arr])
 
                 # plot IDT
-                AX[i,p].plot(1000./Temp_arr,idt_arr,color_arr[m]+'-'+symbol_arr[m])
-                maxA,minA = max(max(idt_arr)*32,maxA),min(min(idt_arr)/2,minA)
+                log_idt = np.log10(idt_arr)
+                AX[p,i].plot(1000./Temp_arr,log_idt,color_arr[m]+line_arr[m]+symbol_arr[m])
+                maxA,minA = max(max(log_idt)+1,maxA),min(min(log_idt)-0.2,minA)
                 
                 # error figure
                 if m==0: IDT_DATA[phi][P] = idt_arr
                 else:
                     diff = np.abs(idt_arr-IDT_DATA[phi][P])/IDT_DATA[phi][P]
-                    BX[i,p].plot(1000./Temp_arr,diff,color_arr[m]+'-'+symbol_arr[m])
-                    maxB,minB = max(max(diff)*32,maxB),min(min(diff)/2,minB)
+                    BX[p,i].plot(1000./Temp_arr,diff,color_arr[m]+line_arr[m]+symbol_arr[m])
+                    maxB,minB = max(max(diff)*8,maxB),min(min(diff)/1.1,minB)
                     rela_err += list(diff)
         if len(rela_err):
             cprint("%s, max: %.3f%% mean: %.3f%%"%(name, np.max(rela_err)*100, np.mean(rela_err)*100))
@@ -82,10 +85,11 @@ if __name__=="__main__":
     print(mech_arr)
     # = = = = = = = = = =
     # figure setting
-    set_sub_plots(AX, xlabel=r'$1000/T$ (K$^{-1}$)', ylabel=r'$\tau$ (s)',
-                    legend=mech_arr,ylim=[minA,maxA], yscale=r'log')
+    set_sub_plots(AX, xlabel=r'$1000/T$ (K$^{-1}$)', ylabel=r'$\log_{10}(\rm{IDT}[s])$',
+                    legend=mech_names,ylim=[minA,maxA])
+    figA.subplots_adjust(left=0.07,bottom=0.09,top=0.98,right=0.95,hspace=0.,wspace=0.)
     set_sub_plots(BX, xlabel=r'$1000/T$ (K$^{-1}$)', ylabel=r'$(\tau_s-\tau_d)/\tau_d$',
-                    legend=mech_arr[1:],ylim=[minB,maxB], yscale=r'log')
-    save_figure(figA, path=figs_dir+'compare_IDT.eps')
-    save_figure(figB, path=figs_dir+'compare_err.eps')
+                    legend=mech_names[1:],ylim=[minB,maxB], yscale=r'log')
+    save_figure(figA, path=figs_dir+'compare_IDT.png')
+    save_figure(figB, path=figs_dir+'compare_err.png')
     plt.show()

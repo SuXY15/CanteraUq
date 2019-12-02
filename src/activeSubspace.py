@@ -70,12 +70,12 @@ def sampling():
         calculator('c%d'%i, gas, props_arr[l[i]:l[i+1]], file_name)
 
 def show(show_flag=0):
-    m,name,mech = mechs[0]
-    props['phi'],props['P'],props['T'] = 1.0, 10.0, 1000.0
+    m,name,mech = mechs[1]
+    props['phi'],props['P'],props['T'] = 1.0, 10.0, 1200.0
 
     # loading
     gas = load_mech(mech)
-    uncetainty_factors = load_uncertainty(mech, UF=UF)
+    uncetainty_factors = load_uncertainty(mech[:-3]+'txt', UF=UF)
     file_name = acts_dir+"%s_UF=%.1f_phi=%.1f_p=%.1fatm_T=%.1fK_s=%d.json"%(name,
                 UF,props['phi'],props['P'],props['T'],samplingSize)
     sens_data_arr = json_reader(file_name)
@@ -101,8 +101,8 @@ def show(show_flag=0):
     w2x = [np.dot(VT[1], 3.*np.log(props['factor'])/np.log(uncetainty_factors)) for props in props_arr]
 
     # figure(1): eigenvalue
-    graph_rank = np.arange(1,21)
-    tick = np.arange(0,21,2)
+    graph_rank = np.arange(1,11)
+    tick = np.arange(0,11,1)
     fig1 = plt.figure("Eigenvalue",figsize=c2i(12,9))
     plt.plot(graph_rank,S[graph_rank-1], marker='o', markerfacecolor='none', color='k')
     plt.xticks(tick)
@@ -145,7 +145,7 @@ def show(show_flag=0):
     import pandas as pd
     dist = pd.DataFrame(np.log10(idt))
     dist.plot.kde(ax=ax, legend=False, color='k', lw=1)
-    dist.plot.hist(density=True, ax=ax, bins=32, color='k', histtype='step', legend=False)
+    dist.plot.hist(density=True, ax=ax, bins=10, color='k', histtype='step', legend=False)
 
     plt.xlabel(r'$\log_{10}({IDT}[s])$')
     plt.ylabel(r'Normalized Histogram')

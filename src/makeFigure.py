@@ -3,6 +3,8 @@ from utils import *
 legend_format = {'handletextpad':0.1, 'labelspacing':0.4, 'columnspacing':1.0}
 matplotlib.rc('legend', **legend_format )
 
+mech_names = ['DME55', 'DME42', 'DME40', 'DME30']
+
 def get_sub_plots3(num):
     fig, axs = plt.subplots(len(P_arr), 1, figsize=c2i(12,15), num=num)
     fig.canvas.set_window_title(num)
@@ -55,13 +57,17 @@ def showAS():
         for j,yj in enumerate(y):
             X[i,j] = xi;
             Y[i,j] = yj;
-    Z = np.e**(X+Y)
+    
+    def f(x):
+        return (x+1)**2
+    
+    Z = f(X+Y)
 
     ax.plot_surface(X,Y,Z,color='k',alpha=0.5)
-    ax.plot(x,y,np.e**(x+y), 'r-')
+    ax.plot(x, y, f(x+y), 'r-')
     ax.plot(x,y,x*0.0, 'r--')
-    ax.plot([x[0],x[0]],[y[0],y[0]],[0, np.e**(x[0]+y[0])],'r--')
-    ax.plot([x[-1],x[-1]],[y[-1],y[-1]],[0, np.e**(x[-1]+y[-1])],'r--')
+    ax.plot([x[0],x[0]],[y[0],y[0]],[0, f(x[0]+y[0])],'r--')
+    ax.plot([x[-1],x[-1]],[y[-1],y[-1]],[0, f(x[-1]+y[-1])],'r--')
     ax.set_xlabel("$x_1$")
     ax.set_ylabel("$x_2$")
     ax.set_zlabel("$f(x_1,x_2)$")
@@ -111,7 +117,38 @@ def DRG_curv(idx=[33,34,73]):
     save_figure(fig, path='./figures/Fig2_DRG.png')
     plt.show()
 
-mech_names = ['DME55', 'DME42', 'DME40', 'DME30']
+def compare():
+    # = = = = = = = = = =
+    # showing results
+    IDT_DATA = {}
+    maxA ,minA = -1e10, 1e10
+    figA, AX = get_sub_plots3(num = "IDT comparasion")
+
+    for m,name,mech in mechs:
+        # loading data
+        props_arr = [d['props'] for d in json_reader(comp_dir+name+".json")]
+        rela_err = []
+        i,phi = 0,phi_arr[1]
+        if m==0: IDT_DATA[phi] = {}
+        for p,P in enumerate(P_arr):
+            # load data in array T and sorted by 1000/T
+            props_parr = [props for props in props_arr if props['P']==P and props['phi']==phi]
+            props_parr = sorted(props_parr, key=lambda props:1000./props['T'])
+            Temp_arr = np.array([props['T'] for props in props_parr if props['T'] in T_arr])
+            idt_arr = np.log10([props['idt'] for props in props_parr if props['T'] in T_arr])
+
+            # plot IDT
+            AX[p].plot(1000./Temp_arr,idt_arr,color_arr[m]+line_arr[m]+symbol_arr[m])
+            maxA,minA = max(max(idt_arr)+0.9,maxA),min(min(idt_arr)-0.1,minA)
+
+    # = = = = = = = = = =
+    # figure setting
+    figA.subplots_adjust(left=0.15,bottom=0.09,top=0.98,right=0.95,hspace=0.,wspace=0.)
+    set_sub_plots3(AX, xlabel=r'$1000/T (K^{-1}$)', ylabel=r'$\log_{10}(\rm{IDT}[s])$',
+                    legend=mech_names,ylim=[minA,maxA])
+    save_figure(figA, path='figures/Fig3_compare_IDT.png')
+    plt.show()
+
 def Tcurv_mech(props, fig, ax1setting, ax2setting, figname='(a)'):
     ax1t, ax1T, ax1pos = ax1setting
     ax1 = fig.add_axes(ax1pos)
@@ -143,7 +180,7 @@ def Tcurv_mech(props, fig, ax1setting, ax2setting, figname='(a)'):
         ax1.legend(legend, frameon=False, loc='best')
     ax1.text(ax1t[1]*0.72, ax1T[0]+(ax1T[1]-ax1T[0])*0.28, r'$\phi=%d$'%(props['phi']), fontsize=15)
     ax1.text(ax1t[1]*0.72, ax1T[0]+(ax1T[1]-ax1T[0])*0.16, r'$P=%datm$'%(props['P']), fontsize=15)
-    ax1.text(ax1t[1]*0.72, ax1T[0]+(ax1T[1]-ax1T[0])*0.04, r'$T_u=%dK$'%(props['T']), fontsize=15)
+    ax1.text(ax1t[1]*0.72, ax1T[0]+(ax1T[1]-ax1T[0])*0.04, r'$T_0=%dK$'%(props['T']), fontsize=15)
     ax1.text(ax1t[0]+(ax1t[1]-ax1t[0])*0.01, ax1T[0]+(ax1T[1]-ax1T[0])*0.90, figname, fontsize=15)
     ax1.set_yticks([1000, 2000, 3000])
     ax1.set_xlabel(r'$t (s)$')
@@ -168,7 +205,7 @@ def Pathway():
 
     Tcurv_mech(props, fig, [ax1t, ax1T, ax1pos], [ax2t, ax2T, ax2pos], figname='(b)')
     #fig.subplots_adjust(left=0.07,bottom=0.20,top=0.95,right=0.99,hspace=0.,wspace=0.)
-    save_figure(fig, 'figures/Fig3b_pathway.png')
+    save_figure(fig, 'figures/Fig4b_pathway.png')
 
     # High temperature
     fig = plt.figure("Fig2b", figsize=c2i(12,6))
@@ -177,40 +214,8 @@ def Pathway():
     ax1pos=[0.10, 0.10, 0.80, 0.80]
     Tcurv_mech(props, fig, [ax1t, ax1T, ax1pos], None, figname='(a)')
     #fig.subplots_adjust(left=0.07,bottom=0.20,top=0.95,right=0.99,hspace=0.,wspace=0.)
-    save_figure(fig, 'figures/Fig3a_pathway.png')
+    save_figure(fig, 'figures/Fig4a_pathway.png')
 
-    plt.show()
-
-def compare():
-    # = = = = = = = = = =
-    # showing results
-    IDT_DATA = {}
-    maxA ,minA = -1e10, 1e10
-    figA, AX = get_sub_plots3(num = "IDT comparasion")
-
-    for m,name,mech in mechs:
-        # loading data
-        props_arr = [d['props'] for d in json_reader(comp_dir+name+".json")]
-        rela_err = []
-        i,phi = 0,phi_arr[1]
-        if m==0: IDT_DATA[phi] = {}
-        for p,P in enumerate(P_arr):
-            # load data in array T and sorted by 1000/T
-            props_parr = [props for props in props_arr if props['P']==P and props['phi']==phi]
-            props_parr = sorted(props_parr, key=lambda props:1000./props['T'])
-            Temp_arr = np.array([props['T'] for props in props_parr if props['T'] in T_arr])
-            idt_arr = np.log10([props['idt'] for props in props_parr if props['T'] in T_arr])
-
-            # plot IDT
-            AX[p].plot(1000./Temp_arr,idt_arr,color_arr[m]+line_arr[m]+symbol_arr[m])
-            maxA,minA = max(max(idt_arr)+0.9,maxA),min(min(idt_arr)-0.1,minA)
-
-    # = = = = = = = = = =
-    # figure setting
-    figA.subplots_adjust(left=0.15,bottom=0.09,top=0.98,right=0.95,hspace=0.,wspace=0.)
-    set_sub_plots3(AX, xlabel=r'$1000/T (K^{-1}$)', ylabel=r'$\log_{10}(\rm{IDT}[s])$',
-                    legend=mech_names,ylim=[minA,maxA])
-    save_figure(figA, path='figures/Fig3_compare_IDT.png')
     plt.show()
 
 def subspace():
@@ -258,7 +263,7 @@ def subspace():
     plt.xlabel(r'index')
     plt.ylabel(r'eigenvalue')
     fig1.subplots_adjust(left=0.18,bottom=0.25,top=0.95,right=0.95,hspace=0.,wspace=0.)
-    save_figure(fig1, path='figures/Fig4a_eigenvalue.png')
+    save_figure(fig1, path='figures/Fig5a_eigenvalue.png')
 
     # figure(2): one dimensional projection
     fig2 = plt.figure(r"$\mathbf{w}_1$ projection",figsize=c2i(12,6))
@@ -266,7 +271,7 @@ def subspace():
     plt.xlabel(r'$w_1^T {x}$')
     plt.ylabel(r'$\log_{10}(\rm{IDT}[s])$')
     fig2.subplots_adjust(left=0.18,bottom=0.25,top=0.95,right=0.95,hspace=0.,wspace=0.)
-    save_figure(fig2, path='figures/Fig4c_w1x.png')
+    save_figure(fig2, path='figures/Fig5c_w1x.png')
 
     # figure(3): w1 components
     x,y = np.transpose([[i,v] for i,v in enumerate(VT[0]) if abs(v)>0.05])
@@ -287,7 +292,7 @@ def subspace():
     plt.yticks([-0.5,0.0,0.5])
     plt.xlim([1, gas.n_reactions])
     fig3.subplots_adjust(left=0.18,bottom=0.22,top=0.95,right=0.95,hspace=0.,wspace=0.)
-    save_figure(fig3, path='figures/Fig4b_w1.png')
+    save_figure(fig3, path='figures/Fig5b_w1.png')
     plt.show()
 
 def pdfplot():
@@ -322,49 +327,6 @@ def pdfplot():
 
     fig, ax = plt.subplots(figsize=c2i(12,6))
 
-    # # loading pmech
-    # Wd = get_subspace(pmech[1], props, dim)
-    # Xd, f = get_Xy(pmech[1], props, p_uf)
-    # X = Xd @ Wd
-    # NX = np.transpose(np.random.normal(0.0, 1.0, (len(p_uf), N))) @ Wd
-    # response_surface.train(X, f)
-    # v,dv = response_surface.predict(NX)
-
-    # print("Sigma p:", np.std(v))
-    # dist = pd.DataFrame(v-np.mean(v))
-    # dist.plot.kde(ax=ax, legend=False, style='k^-', lw=1, ind=ind, fillstyle='none')
-    # #dist.plot.hist(density=True, ax=ax, bins=32, color='k', histtype='step', legend=False)
-
-    # # transition
-    # Wd = get_subspace(pmech[1], props, dim)
-    # Wi = S.transpose() @ Wd
-    # Xd, f = get_Xy(pmech[1], props, p_uf)
-    # X = Xd @ S @ Wi
-    # NX = np.transpose(np.random.normal(0.0, 1.0, (len(s_uf), N))) @ Wi
-    # response_surface.train(X, f)
-    # v,dv = response_surface.predict(NX)
-
-    # print("Sigma t:", np.std(v))
-    # dist = pd.DataFrame(v-np.mean(v))
-    # dist.plot.kde(ax=ax, legend=False, style='ko--', lw=1, ind=ind, fillstyle='none')
-    # #dist.plot.hist(density=True, ax=ax, bins=32, color='k', style='--', histtype='step', legend=False)
-
-    # # loading smech
-    # Ws = get_subspace(smech[1], props, dim)
-    # Xs, f = get_Xy(smech[1], props, s_uf)
-    # X = Xs @ Ws
-    # NX = np.transpose(np.random.normal(0.0, 1.0, (len(s_uf), N))) @ Ws
-    # response_surface.train(X, f)
-    # v,dv = response_surface.predict(NX)
-
-    # print("Sigma s:", np.std(v))
-    # dist = pd.DataFrame(v-np.mean(v))
-    # dist.plot.kde(ax=ax, legend=False, style='r^-', lw=1, ind=ind, fillstyle='none')
-    # #dist.plot.hist(density=True, ax=ax, bins=32, color='r', histtype='step', legend=False)
-
-
-    # = = = = = = = = = = = = = = = = = = = =
-    props['phi'],props['P'],props['T'] = 1.0, 10.0, 650.0
     # loading pmech
     Wd = get_subspace(pmech[1], props, dim)
     Xd, f = get_Xy(pmech[1], props, p_uf)
@@ -404,6 +366,49 @@ def pdfplot():
     dist = pd.DataFrame(v-np.mean(v))
     dist.plot.kde(ax=ax, legend=False, style='r^-', lw=1, ind=ind, fillstyle='none')
     #dist.plot.hist(density=True, ax=ax, bins=32, color='r', histtype='step', legend=False)
+
+
+    # # = = = = = = = = = = = = = = = = = = = =
+    # props['phi'],props['P'],props['T'] = 1.0, 10.0, 650.0
+    # # loading pmech
+    # Wd = get_subspace(pmech[1], props, dim)
+    # Xd, f = get_Xy(pmech[1], props, p_uf)
+    # X = Xd @ Wd
+    # NX = np.transpose(np.random.normal(0.0, 1.0, (len(p_uf), N))) @ Wd
+    # response_surface.train(X, f)
+    # v,dv = response_surface.predict(NX)
+
+    # print("Sigma p:", np.std(v))
+    # dist = pd.DataFrame(v-np.mean(v))
+    # dist.plot.kde(ax=ax, legend=False, style='k^-', lw=1, ind=ind, fillstyle='none')
+    # #dist.plot.hist(density=True, ax=ax, bins=32, color='k', histtype='step', legend=False)
+
+    # # transition
+    # Wd = get_subspace(pmech[1], props, dim)
+    # Wi = S.transpose() @ Wd
+    # Xd, f = get_Xy(pmech[1], props, p_uf)
+    # X = Xd @ S @ Wi
+    # NX = np.transpose(np.random.normal(0.0, 1.0, (len(s_uf), N))) @ Wi
+    # response_surface.train(X, f)
+    # v,dv = response_surface.predict(NX)
+
+    # print("Sigma t:", np.std(v))
+    # dist = pd.DataFrame(v-np.mean(v))
+    # dist.plot.kde(ax=ax, legend=False, style='ko--', lw=1, ind=ind, fillstyle='none')
+    # #dist.plot.hist(density=True, ax=ax, bins=32, color='k', style='--', histtype='step', legend=False)
+
+    # # loading smech
+    # Ws = get_subspace(smech[1], props, dim)
+    # Xs, f = get_Xy(smech[1], props, s_uf)
+    # X = Xs @ Ws
+    # NX = np.transpose(np.random.normal(0.0, 1.0, (len(s_uf), N))) @ Ws
+    # response_surface.train(X, f)
+    # v,dv = response_surface.predict(NX)
+
+    # print("Sigma s:", np.std(v))
+    # dist = pd.DataFrame(v-np.mean(v))
+    # dist.plot.kde(ax=ax, legend=False, style='r^-', lw=1, ind=ind, fillstyle='none')
+    # #dist.plot.hist(density=True, ax=ax, bins=32, color='r', histtype='step', legend=False)
     
     plt.xlabel(r'$\log_{10}(\rm{IDT}[s])-\left<\log_{10}(\rm{IDT}[s])\right>$')
     plt.ylabel(r'PDF')
@@ -411,18 +416,18 @@ def pdfplot():
     plt.ylim([-0.2, 3.5])
     # plt.legend([mech_names[p_pos], 'transition', mech_names[s_pos]], frameon=False)
 
-    # plt.text(-0.48, 3.1, r'$(a)$', fontsize=15)
-    # plt.text(-0.48, 2.6, r'$\phi=1$', fontsize=15)
-    # plt.text(-0.48, 2.15, r'$P=1atm$', fontsize=15)
-    # plt.text(-0.48, 1.7, r'$T_u=1200K$', fontsize=15)
-
-    plt.text(-0.48, 3.1, r'$(b)$', fontsize=15)
+    plt.text(-0.48, 3.1, r'$(a)$', fontsize=15)
     plt.text(-0.48, 2.6, r'$\phi=1$', fontsize=15)
-    plt.text(-0.48, 2.15, r'$P=10atm$', fontsize=15)
-    plt.text(-0.48, 1.7, r'$T_u=650K$', fontsize=15)
+    plt.text(-0.48, 2.15, r'$P=1atm$', fontsize=15)
+    plt.text(-0.48, 1.7, r'$T_0=1200K$', fontsize=15)
+
+    # plt.text(-0.48, 3.1, r'$(b)$', fontsize=15)
+    # plt.text(-0.48, 2.6, r'$\phi=1$', fontsize=15)
+    # plt.text(-0.48, 2.15, r'$P=10atm$', fontsize=15)
+    # plt.text(-0.48, 1.7, r'$T_0=650K$', fontsize=15)
 
     fig.subplots_adjust(left=0.11,bottom=0.23,top=0.95,right=0.95,hspace=0.,wspace=0.)
-    save_figure(fig, path='figures/Fig8b_distribution.png')
+    save_figure(fig, path='figures/Fig6a_distribution.png')
 
     plt.show()
 
@@ -431,9 +436,10 @@ def trainPredict(dim=3,order=2,N=50000,method=''):
     font={'size':15}
     matplotlib.rc('font', **font)
 
+    ind = 80
     m,name,mech = mechs[0]
     props = config_dict['props']
-    props['phi'], props['P'], props['T'] = 1.0, 10.0, 1200.
+    props['phi'], props['P'], props['T'] = 1.0, 10.0, 1000.
     response_surface = PolynomialApproximation(N=order)
 
     # prepare data
@@ -468,11 +474,30 @@ def trainPredict(dim=3,order=2,N=50000,method=''):
     if method=='ann': response_surface.show_loss()
     fig1,fig2 = fitting_plots(x, xf, xp, v, vf, vp, NX, NP)
 
-    # plt.xlim([-2.3, -0.6])
+    import pandas as pd
+    fig3, ax = plt.subplots(figsize=c2i(12,6))
+
+    dist = pd.DataFrame(NP, columns=['samples'])
+    dist.plot.kde(ax=ax, legend=False, style='k.-', lw=1, ms=6, ind=ind, fillstyle='none')
+
+    dist = pd.DataFrame(xf.flatten().tolist()+vf.flatten().tolist(), columns=['train'])
+    dist.plot.kde(ax=ax, legend=False, style='kv-', lw=1, ms=6, ind=ind, fillstyle='none')
+    
+    dist = pd.DataFrame(xp.flatten().tolist()+vp.flatten().tolist(), columns=['predict'])
+    dist.plot.kde(ax=ax, legend=False, style='r^-', lw=1, ms=6, ind=ind, fillstyle='none')
+
+
+    plt.xlabel(r"$\log_{10}(\rm{IDT}[s])$")
+    plt.ylabel(r"PDF")
+    plt.legend(['samples', 'train', 'predict'], frameon=False)
+
+    plt.xlim([-3.6, -1.4])
     fig1.subplots_adjust(left=0.18,bottom=0.22,top=0.95,right=0.95,hspace=0.,wspace=0.)
     fig2.subplots_adjust(left=0.18,bottom=0.22,top=0.95,right=0.95,hspace=0.,wspace=0.)
-    save_figure(fig1, "figures/M_Fig1_train&valid.png")
-    save_figure(fig2, "figures/M_Fig1_prediction.png")
+    fig3.subplots_adjust(left=0.18,bottom=0.22,top=0.95,right=0.95,hspace=0.,wspace=0.)
+    save_figure(fig1, "figures/FigS3a_train&valid.png")
+    save_figure(fig2, "figures/FigS3b_prediction.png")
+    save_figure(fig3, "figures/FigS3c_pdf.png")
     plt.show()
 
 def propagation():
@@ -648,16 +673,16 @@ def propagation():
 
     cprint("Setting plots", 'g')
     Legend = [r'$\sigma_{r,d}$', r'$\sigma_{r,t}$', r'$\sigma_{r,s}$']
-    set_sub_plots3(BX, r'$1000/T, K^{-1}$', r'$\sigma_r$',Legend, xlim=[minT,maxT],ylim=[minB,maxB],ncol=3)
+    set_sub_plots3(BX, r'$1000/T (K^{-1})$', r'$\sigma_r$',Legend, xlim=[minT,maxT],ylim=[minB,maxB],ncol=3)
     cprint("Saving figures", 'g')
     figB.subplots_adjust(left=0.14, bottom=0.10, top=0.98, right=0.85, hspace=0., wspace=0.)
-    save_figure(figB, 'figures/Fig6_%s_%s_Sigm.png'%(pmech[1],smech[1]))
+    save_figure(figB, 'figures/Fig7_%s_%s_Sigm.png'%(pmech[1],smech[1]))
     plt.show()
 
 def propagation3():
     Legend = []
     dim, order, N = 3,2,50000
-    font={'size':10}
+    font={'size':15}
     matplotlib.rc('font', **font)
 
     p_pos, s_pos = 1, 2
@@ -683,7 +708,7 @@ def propagation3():
 
     # = = = = = = = = = = = =
     # pmech
-    Legend.append(pmech[1])
+    Legend.append(mech_names[p_pos])
     m,name,mech = pmech
     cprint("Printing %s"%name,'g')
 
@@ -753,8 +778,6 @@ def propagation3():
                 plt.yticks([])
     P_DATA_DICT = deepcopy(data_dict)
 
-    font={'size':15}
-    matplotlib.rc('font', **font)
     # = = = = = = = = = = = =
     # pmech -> intermediate
     Legend.append("transition")
@@ -813,8 +836,6 @@ def propagation3():
 
     I_DATA_DICT = deepcopy(data_dict)
 
-    font={'size':10}
-    matplotlib.rc('font', **font)
     # prepare figures
     T_revert = np.array([1000./Ti for Ti in T_arr])
     for i,phi in enumerate(phi_arr):
@@ -840,7 +861,7 @@ def propagation3():
 
     # = = = = = = = = = = = =
     # smech
-    Legend.append(smech[1])
+    Legend.append(mech_names[s_pos])
     m,name,mech = smech
     cprint("\nPrinting %s"%name,'g')
     # Load data
@@ -915,17 +936,13 @@ def propagation3():
             #minE, maxE = min(min(minE, np.min(t_data_list)*0.8),np.min(t_data_list)*1.2), max(maxE, np.max(t_data_list)*1.2)
             minE, maxE = min(minE, np.min(c_data_list)-0.1), max(maxE, np.max(c_data_list)+0.1)
 
-    font = {'size':10}
-    matplotlib.rc('font', **font)
-    set_sub_plots2(EX, r'1000/T, $K^{-1}$', r'$r_t$', Legend, xlim=[minT, maxT], ylim=[minE, maxE])
     cprint("Setting plots", 'g')
-    set_sub_plots(AX, r'1000/T, $K^{-1}$', r'$\log(IDT[s])$', Legend, xlim=[minT,maxT],ylim=[minA,maxA])
-    set_sub_plots(BX, r'1000/T, $K^{-1}$', r'$\sigma_r$',Legend, xlim=[minT,maxT],ylim=[minB,maxB])
+    set_sub_plots2(EX, r'1000/T, $K^{-1}$', r'$r_t$', Legend, xlim=[minT, maxT], ylim=[minE, maxE])
+    set_sub_plots(AX, r'$1000/T (K^{-1})$', r'$\log(IDT[s])$', Legend, xlim=[minT,maxT],ylim=[minA,maxA])
+    set_sub_plots(BX, r'$1000/T (K^{-1})$', r'$\sigma_r$',Legend, xlim=[minT,maxT],ylim=[minB,maxB])
     cprint("Saving figures", 'g')
     figB.subplots_adjust(left=0.06, bottom=0.09, top=0.98, right=0.90, hspace=0., wspace=0.)
-    save_figure(figA,'figures/Fig7_prop_%s_%s_Dist.png'%(pmech[1],smech[1]))
-    save_figure(figB, 'figures/Fig7_%s_%s_Sigm.png'%(pmech[1],smech[1]))
-    save_figure(figE, 'figures/Fig8_%s_%s_Elim.png'%(pmech[1],smech[1]))
+    save_figure(figB, 'figures/FigS4_%s_%s_Sigm.png'%(pmech[1],smech[1]))
     plt.show()
 
-pdfplot()
+showAS()

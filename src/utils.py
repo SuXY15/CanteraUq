@@ -9,6 +9,8 @@ try:
     font={'size':13}
     matplotlib.rc('font', **font)
     matplotlib.rc('text', usetex=True)
+    legend_format = {'frameon':False}#, 'handletextpad':0.1, 'labelspacing':0.4, 'columnspacing':1.0}
+    matplotlib.rc('legend', **legend_format )
     # matplotlib.rc('ps', usedistiller='ghostscript')
 except:
     "Note: matplotlib not found, are you on a server with no GUI?"
