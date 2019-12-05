@@ -1,4 +1,9 @@
 data/
+mech/
+!mech/H2
+!mech/DME
 *__pycache__*
 local
 *.DS_Store*
+run.sh
+qcqp.log
