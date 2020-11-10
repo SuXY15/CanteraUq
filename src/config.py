@@ -108,6 +108,50 @@ if __name__ == "__main__":
                  'tot': 10.,                # total time
                  'UF': UF,
              }
+    # = = = = = = = = = =
+    # Methane without N2 branch
+    elif mech == "CH4":
+        UF = 2.             # Uncertainty factor
+        pdiff = 5e-3        # difference interval for sensitivity
+        maxt = 5e-2         # max time for json writer
+        samplingSize = 400  # sampling size
+
+        mech_dir = "mech/CH4/"
+        comp_dir = "data/CH4_comp/" # comparation data
+        sens_dir = "data/CH4_sens/" # sensitivity data
+        acts_dir = "data/CH4_acts/" # active subspace data
+        resp_dir = "data/CH4_resp/" # response surface data
+        figs_dir = "data/CH4_figs/" # figures
+        
+        # mechanisms
+        mech_arr = ["CH4_35",
+                    "CH4_33",
+                    "CH4_31",
+                    "CH4_30",
+                    "CH4_28",
+                    "CH4_26",
+                    "CH4_25",
+                    "CH4_24",
+                    "CH4_22",
+                    "CH4_19",
+                    "CH4_18",
+                    "CH4_16",
+                    "CH4_15"]
+
+        # conditions
+        phi_arr=[0.5, 1.0, 1.5]
+        P_arr = [1.0, 10.0, 20.0]
+        T_arr = [1000., 1100., 1200., 1300., 1400.]
+        
+        props = {'T': 1200.,                # Temperature
+                 'P': 10.,                  # Pressure
+                 'phi': 1.0,                # equivalence ratio
+                 'air':'O2:1.0,N2:3.76',    # air components
+                 'fuel':'CH4:1.0',      # fuel components
+                 'type':'UV',               # sim type
+                 'tot': 10.,                # total time
+                 'UF': UF,
+             }
     elif mech == "JP10":
         raise Exception("JP10 not defined.")
     else:

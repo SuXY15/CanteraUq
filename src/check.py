@@ -23,8 +23,7 @@ def check_mech():
             cprint(" error!")
 
 # check compare
-def check_comp(name,mech,delete=False):
-    file_name = comp_dir+name+".json"
+def check_comp(file_name, conditions, delete=False):
     data_arr = json_reader(file_name)
     props_arr = [d['props'] for d in data_arr]
     old_conditions = [[props['phi'],props['P'],props['T']] for props in props_arr]

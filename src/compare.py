@@ -36,7 +36,7 @@ if __name__=="__main__":
             l,i = [int(li) for li in np.linspace(0, len(props_arr), num=size+1)],rank
             calculator('c%d'%i, gas, props_arr[l[i]:l[i+1]], file_name)
         else:
-            new_props_arr = check_comp(name,mech,delete=False)
+            new_props_arr = check_comp(file_name,conditions,delete=False)
             print("Data of %s exists. Need %d calculations."%(name, len(new_props_arr)))
             if len(new_props_arr):
                 l,i = [int(li) for li in np.linspace(0, len(new_props_arr), num=size+1)],rank

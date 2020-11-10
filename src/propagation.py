@@ -152,7 +152,7 @@ if __name__ == "__main__":
             print("%.1f %2.0f %.5f %.5f %.5f %.5f %.5f"%(phi,P,data_list[0][1],data_list[1][1],
                 data_list[2][1],data_list[3][1],data_list[4][1]))
 
-    plt.xlabel(r"$\|P^T \mathbf{w}_{d,1}\|$")
+    plt.xlabel(r"$\|P \mathbf{w}_{d,1}\|$")
     plt.ylabel(r"$\sigma_{r,t}/\sigma_{r,d}$")
 
     I_DATA_DICT = deepcopy(data_dict)

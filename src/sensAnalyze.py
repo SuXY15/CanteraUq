@@ -1,10 +1,10 @@
 from utils import *
 from check import *
-from mpi4py import MPI
+# from mpi4py import MPI
 
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
+# comm = MPI.COMM_WORLD
+# rank = comm.Get_rank()
+# size = comm.Get_size()
 
 # = = = = = = = = = =
 # calculator
@@ -58,7 +58,7 @@ if __name__=="__main__":
         l,i = [int(li) for li in np.linspace(0, len(calc_arr), num=size+1)],rank
         calculator('c%d'%i, calc_arr[l[i]:l[i+1]])
 
-    if rank!= 0: sys.exit(0)
+    # if rank!= 0: sys.exit(0)
 
     # = = = = = = = = = =
     # calculate global main reactions
@@ -112,7 +112,7 @@ if __name__=="__main__":
         err_arr = []
         print(x)
         for t,T in enumerate(T_arr):
-            fig, AX = get_sub_plots("Sensitivity Comparation, %s, T=%.0fK"%(name,T))
+            # fig, AX = get_sub_plots("Sensitivity Comparation, %s, T=%.0fK"%(name,T))
             props_tarr = [props_arr[i] for i,p in enumerate(props_arr) if p['T'] == T]
             tdata_tarr = [tdata_arr[i] for i,p in enumerate(props_arr) if p['T'] == T]
             sdata_tarr = [sdata_arr[i] for i,p in enumerate(props_arr) if p['T'] == T]
@@ -121,12 +121,16 @@ if __name__=="__main__":
             for pi,props in enumerate(props_tarr):
                 i,phi = first(phi_arr,lambda phi: phi==props['phi'])
                 p,P = first(P_arr,lambda P: P==props['P'])
-                AX[p,i].bar(x-0.2,tdata_tarr[pi][rank],width=0.4)
-                AX[p,i].bar(x+0.2,sdata_tarr[pi][rank],width=0.4)
-                # if i==2 and p==1: plt.xticks(x,xtick,rotation=45)
+                # AX[p,i].bar(x-0.2,tdata_tarr[pi][rank],width=0.4)
+                # AX[p,i].bar(x+0.2,sdata_tarr[pi][rank],width=0.4)
+                if i==2 and p==1: plt.xticks(x,xtick,rotation=45)
                 err_arr.append(1-np.dot(tdata_tarr[pi],sdata_tarr[pi]))
-            set_sub_plots(AX, xlabel=r'Reaction Index', ylabel=r'$S_{\tau}$',
-                    legend=["brute force","adjoint"], ylim=[-1.,1.])
-            save_figure(fig, path=figs_dir+'/sens_comp/sens_comp_%s_T=%.0fK.png'%(name,T))
+                print("m=%d,T=%d,P=%d,phi=%.1f, inner product:%.6f"%(m,t,p,phi,np.dot(tdata_tarr[pi],sdata_tarr[pi])))
+            # set_sub_plots(AX, xlabel=r'Reaction Index', ylabel=r'$S_{\tau}$',
+                    # legend=["brute force","adjoint"], ylim=[-1.,1.])
+            # save_figure(fig, path=figs_dir+'/sens_comp/sens_comp_%s_T=%.0fK.png'%(name,T))
+        plt.hist(np.log10(err_arr), label=name, alpha=0.5, bins=25)
         cprint("Mean err: %.3e, Max err: %.3e"%(np.mean(err_arr), np.max(err_arr)), 'g')
+    plt.xlabel("log10(err)")
+    plt.legend()
     plt.show()

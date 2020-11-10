@@ -21,9 +21,9 @@ from copy import deepcopy
 t0 = time.time()
 threadLock = threading.Lock()
 np.random.seed(0x532E532E53>>7)
-line_arr = ('-','--','-.',':')
-color_arr = ('k','r','b','m')
-symbol_arr = ('s','o','v','^')
+line_arr = ('-','--','-.',':','-','--','-.',':','-','--','-.',':')
+color_arr = ('k','r','b','m','y','k','r','b','m','y','k','r','b','m','y')
+symbol_arr = ('s','o','v','^','s','o','v','^','s','o','v','^')
 
 # = = = = = = = = = =
 # message in cli
@@ -81,8 +81,11 @@ def json_reader(filename, fmt=False):
     """
     data = []
     with open(filename, "r") as f:
-        for line in f.readlines():
-            data.append(json.loads(line))
+        for i, line in enumerate(f.readlines()):
+            try:
+                data.append(json.loads(line))
+            except:
+                print("Line %d failed"%i)
         return data
 
 def config_writer(config_file, data):
@@ -197,7 +200,8 @@ def get_sub_plots(num):
     fig.canvas.set_window_title(num)
     return fig, axs
 
-def set_sub_plots(axs, xlabel, ylabel, legend, xlim=None, ylim=None, xscale=None, yscale=None,):
+def set_sub_plots(axs, xlabel, ylabel, legend, xlim=None, ylim=None, xscale=None,\
+                    yscale=None, anchor=[0.5,0.85], loc="upper center", ncol=2):
     """ Set subplots
     """
     for i,phi in enumerate(phi_arr):
@@ -206,12 +210,12 @@ def set_sub_plots(axs, xlabel, ylabel, legend, xlim=None, ylim=None, xscale=None
             if(i!=len(phi_arr)-1): axs[i,p].get_xaxis().set_visible(False)
             if i==2 and p==1:      axs[i,p].set_xlabel(xlabel)
             if i==1 and p==0:      axs[i,p].set_ylabel(ylabel)
-            if i==1 and p==1:      axs[i,p].legend(legend, loc="lower right", frameon=False)
+            if i==1 and p==1:      axs[i,p].legend(legend, bbox_to_anchor=anchor, loc=loc, frameon=False, ncol=ncol)
             if xlim:   axs[i,p].set_xlim(xlim)
             if ylim:   axs[i,p].set_ylim(ylim)
             if xscale: axs[i,p].set_xscale(xscale)
             if yscale: axs[i,p].set_yscale(yscale)
-            axs[p,i].set_title(r"$\phi=%.1f, P=%.0fatm$"%(phi,P), pad=-20)
+            axs[p,i].set_title(r"$\phi=%.1f, P=%.0fatm$"%(phi,P), pad=-15)
 
 def save_figure(fig, path=None):
     """ Save figure with handle
@@ -354,6 +358,11 @@ def get_ign(gas, props, name=''):
 def get_ign_sens(gas, props, name=''):
     """ Get iginition delay time and sensitivity
     """
+    if props['factor'] is not None:
+        gas.set_multiplier(1.0)
+        for j,factor in enumerate(props['factor']):
+            gas.set_multiplier(factor, j)
+
     r = gas_reactor(gas, props, name)
 
     sim = ct.ReactorNet([r])
@@ -391,6 +400,11 @@ def get_ign_sens(gas, props, name=''):
 def get_ign_sens_bf(gas, props):
     """ Get iginition delay time and sensitivity by brute force method
     """
+    if props['factor'] is not None:
+        gas.set_multiplier(1.0)
+        for j,factor in enumerate(props['factor']):
+            gas.set_multiplier(factor, j)
+            
     sens = list(np.zeros(gas.n_reactions))
     idt = get_ign(gas, props)
     for p in range(gas.n_reactions):
@@ -413,7 +427,7 @@ def get_fs(gas, props, name=''):
     sim.transport_model = 'Multi'
     sim.solve(loglevel=0, auto=True)
     
-    flame_speed = sim.u[0]
+    flame_speed = sim.velocity[0]
     return flame_speed
 
 def get_fs_sens(gas, props, name=''):

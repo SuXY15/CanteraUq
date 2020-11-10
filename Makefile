@@ -90,7 +90,8 @@ response_predict:
 	python3 src/respSurface.py ${mech} predict
 response_distribution:
 	python3 src/respSurface.py ${mech} distribution
-
+response_single:
+	python3 src/respSurface.py ${mech} single
 
 # propagation
 type = 5

@@ -74,6 +74,7 @@ def showAS():
     save_figure(fig, "figures/Fig0_showAS.png")
     plt.show()
 
+# Figure showing DRG curv
 def DRG_curv(idx=[33,34,73]):
     font={'size':15}
     matplotlib.rc('font', **font)
@@ -117,7 +118,8 @@ def DRG_curv(idx=[33,34,73]):
     save_figure(fig, path='./figures/Fig2_DRG.png')
     plt.show()
 
-def compare():
+# compare all 
+def compare3():
     # = = = = = = = = = =
     # showing results
     IDT_DATA = {}
@@ -147,6 +149,38 @@ def compare():
     set_sub_plots3(AX, xlabel=r'$1000/T (K^{-1}$)', ylabel=r'$\log_{10}(\rm{IDT}[s])$',
                     legend=mech_names,ylim=[minA,maxA])
     save_figure(figA, path='figures/Fig3_compare_IDT.png')
+    plt.show()
+
+def compare9():
+    # = = = = = = = = = =
+    # showing results
+    IDT_DATA = {}
+    maxA ,minA = -1e10, 1e10
+    figA, AX = get_sub_plots(num="IDT comparasion")
+
+    for m,name,mech in mechs:
+        # loading data
+        props_arr = [d['props'] for d in json_reader(comp_dir+name+".json")]
+        for i,phi in enumerate(phi_arr):
+            if m==0: IDT_DATA[phi] = {}
+            for p,P in enumerate(P_arr):
+                # load data in array T and sorted by 1000/T
+                props_parr = [props for props in props_arr if props['P']==P and props['phi']==phi]
+                props_parr = sorted(props_parr, key=lambda props:1000./props['T'])
+                Temp_arr = np.array([props['T'] for props in props_parr if props['T'] in T_arr])
+                idt_arr = np.array([props['idt'] for props in props_parr if props['T'] in T_arr])
+
+                # plot IDT
+                log_idt = np.log10(idt_arr)
+                AX[p,i].plot(1000./Temp_arr,log_idt,color_arr[m]+line_arr[m]+symbol_arr[m],fillstyle='none')
+                maxA,minA = max(max(log_idt)+0.7,maxA),min(min(log_idt)-0.1,minA)
+
+    # = = = = = = = = = =
+    # figure setting
+    figA.subplots_adjust(left=0.07,bottom=0.09,top=0.98,right=0.98,hspace=0.,wspace=0.)
+    set_sub_plots(AX, xlabel=r'$1000/T (K^{-1}$)', ylabel=r'$\log_{10}(\rm{IDT}[s])$',
+                    legend=mech_names, ylim=[minA,maxA])
+    save_figure(figA, path='figures/Fig3_compare9e_IDT.png')
     plt.show()
 
 def Tcurv_mech(props, fig, ax1setting, ax2setting, figname='(a)'):
@@ -191,7 +225,7 @@ def Pathway():
     matplotlib.rc('font', **font)
 
     # Low temperature
-    fig = plt.figure("Fig2a", figsize=c2i(12,6))
+    fig = plt.figure("Fig4a", figsize=c2i(12,6))
     # props['phi'],props['P'],props['T'] = 1.0, 1.0, 600.0
     # ax1t=[0.00,0.15]; ax1T=[500,3000]
     # ax2t=[0.09,0.10]; ax2T=[600,1000]
@@ -208,7 +242,7 @@ def Pathway():
     save_figure(fig, 'figures/Fig4b_pathway.png')
 
     # High temperature
-    fig = plt.figure("Fig2b", figsize=c2i(12,6))
+    fig = plt.figure("Fig4b", figsize=c2i(12,6))
     props['phi'],props['P'],props['T'] = 1.0, 1.0, 1200.0
     ax1t=[0.000, 0.002]; ax1T=[1000, 3000]
     ax1pos=[0.10, 0.10, 0.80, 0.80]
@@ -217,6 +251,66 @@ def Pathway():
     save_figure(fig, 'figures/Fig4a_pathway.png')
 
     plt.show()
+
+def sensitivity():
+    gas0 = load_mech(mechs[0][2])
+    eqs0 = [r.equation for r in gas0.reactions()]
+    main_reaction = set()
+    for m,name,mech in mechs:
+        gas = load_mech(mech)
+        filename = sens_dir+name+".json"
+        main_reaction_m = set()
+        eqs = [r.equation for r in gas.reactions()]
+        for data in json_reader(filename):
+            props = data['props']
+            tdata = normalize(data['tdata'])
+            sdata = normalize(data['sdata'])
+            # accum for main reactions
+            rank = np.argsort(-abs(sdata))
+            if np.sum(np.abs(sdata))>0.5:
+                pos = accum(sdata[rank], sum_limit=0.99 if props['T']<1200 else 0.75)
+                pRank = parentRank(rank[0:pos],eqs,eqs0)
+                main_reaction_m.update(pRank)
+            print("%s %.1f, %.0fatm, %.0fK: %d %d"%
+                (name, props['phi'], props['P'], props['T'], len(main_reaction_m),len(main_reaction)))
+        main_reaction.update(main_reaction_m)
+    main_reaction = sorted(list(main_reaction))
+
+    m, name, mech = mechs[0]
+
+    gas = load_mech(mech)
+    eqs = [r.equation for r in gas.reactions()]
+    rank = np.array(childRank(main_reaction, eqs, eqs0))
+    idx = [i for i,r in enumerate(rank) if r is not None]
+    rank = rank[idx].astype('int')
+    x = np.array(range(0,len(main_reaction)))[idx]
+    xtick = np.array(['R%d'%(pr+1) for pr in main_reaction])[idx]
+
+    data_arr = json_reader(sens_dir+name+".json")
+    props_arr = [d['props'] for d in data_arr]
+    tdata_arr = np.array([normalize(d['tdata']) for d in data_arr])
+    sdata_arr = np.array([normalize(d['sdata']) for d in data_arr])
+
+    T, P, phi = 1200., 1., 1.
+
+    fig = plt.figure("Sensitivity Calibaration",figsize=c2i(16,8))
+    props = [props_arr[i] for i,p in enumerate(props_arr) if \
+                p['T'] == T and p['phi'] == phi and p['P'] == P][0]
+    tdata = [tdata_arr[i] for i,p in enumerate(props_arr) if \
+                p['T'] == T and p['phi'] == phi and p['P'] == P][0]
+    sdata = [sdata_arr[i] for i,p in enumerate(props_arr) if \
+                p['T'] == T and p['phi'] == phi and p['P'] == P][0]
+    plt.bar(x-0.2,tdata[rank],width=0.4,color='C0')
+    plt.bar(x+0.2,sdata[rank],width=0.4,color='C1')
+    print("Inner product: ", np.dot(tdata,sdata))
+
+    plt.xlabel(r'Reaction Index')
+    plt.ylabel(r'$S_{\tau}$')
+    plt.legend(["brute force","adjoint"], frameon=False)
+    # plt.ylim([-1.,1.])
+    plt.xticks(x,xtick,rotation=270)
+    plt.ylim([-1, 1])
+    save_figure(fig, path='figures/Fig5_%s_T=%.0fK.png'%(name,T))
 
 def subspace():
     font={'size':15}
@@ -242,7 +336,7 @@ def subspace():
     print("Num of samples:",len(sens_data_arr), "Useful:", len(idx))
 
     # calculating C matrix
-    tdata_arr = normalize(tdata_arr[:10])
+    tdata_arr = normalize(tdata_arr)
     C = np.transpose(tdata_arr) @ np.array(tdata_arr)
 
     # SVD decomposing
@@ -263,7 +357,7 @@ def subspace():
     plt.xlabel(r'index')
     plt.ylabel(r'eigenvalue')
     fig1.subplots_adjust(left=0.18,bottom=0.25,top=0.95,right=0.95,hspace=0.,wspace=0.)
-    save_figure(fig1, path='figures/Fig5a_eigenvalue.png')
+    save_figure(fig1, path='figures/Fig6a_eigenvalue.png')
 
     # figure(2): one dimensional projection
     fig2 = plt.figure(r"$\mathbf{w}_1$ projection",figsize=c2i(12,6))
@@ -271,7 +365,7 @@ def subspace():
     plt.xlabel(r'$w_1^T {x}$')
     plt.ylabel(r'$\log_{10}(\rm{IDT}[s])$')
     fig2.subplots_adjust(left=0.18,bottom=0.25,top=0.95,right=0.95,hspace=0.,wspace=0.)
-    save_figure(fig2, path='figures/Fig5c_w1x.png')
+    save_figure(fig2, path='figures/Fig6b_w1x.png')
 
     # figure(3): w1 components
     x,y = np.transpose([[i,v] for i,v in enumerate(VT[0]) if abs(v)>0.05])
@@ -292,7 +386,8 @@ def subspace():
     plt.yticks([-0.5,0.0,0.5])
     plt.xlim([1, gas.n_reactions])
     fig3.subplots_adjust(left=0.18,bottom=0.22,top=0.95,right=0.95,hspace=0.,wspace=0.)
-    save_figure(fig3, path='figures/Fig5b_w1.png')
+    save_figure(fig3, path='figures/Fig6c_w1.png')
+
     plt.show()
 
 def pdfplot():
@@ -305,6 +400,7 @@ def pdfplot():
     response_surface = PolynomialApproximation(N=order)
 
     props['phi'],props['P'],props['T'] = 1.0, 1.0, 1200.0
+    # props['phi'],props['P'],props['T'] = 1.0, 10., 650.0
 
     # preparing
     p_pos, s_pos = 1, 2
@@ -335,7 +431,7 @@ def pdfplot():
     response_surface.train(X, f)
     v,dv = response_surface.predict(NX)
 
-    print("Sigma p:", np.std(v))
+    print("Sigma p: %.4f, mean p: %.4e"%(np.std(v), np.mean(v)))
     dist = pd.DataFrame(v-np.mean(v))
     dist.plot.kde(ax=ax, legend=False, style='k^-', lw=1, ind=ind, fillstyle='none')
     #dist.plot.hist(density=True, ax=ax, bins=32, color='k', histtype='step', legend=False)
@@ -349,7 +445,7 @@ def pdfplot():
     response_surface.train(X, f)
     v,dv = response_surface.predict(NX)
 
-    print("Sigma t:", np.std(v))
+    print("Sigma t: %.4f, mean t: %.4e"%(np.std(v), np.mean(v)))
     dist = pd.DataFrame(v-np.mean(v))
     dist.plot.kde(ax=ax, legend=False, style='ko--', lw=1, ind=ind, fillstyle='none')
     #dist.plot.hist(density=True, ax=ax, bins=32, color='k', style='--', histtype='step', legend=False)
@@ -362,7 +458,7 @@ def pdfplot():
     response_surface.train(X, f)
     v,dv = response_surface.predict(NX)
 
-    print("Sigma s:", np.std(v))
+    print("Sigma s: %.4f, mean s: %.4e"%(np.std(v), np.mean(v)))
     dist = pd.DataFrame(v-np.mean(v))
     dist.plot.kde(ax=ax, legend=False, style='r^-', lw=1, ind=ind, fillstyle='none')
     #dist.plot.hist(density=True, ax=ax, bins=32, color='r', histtype='step', legend=False)
@@ -410,6 +506,7 @@ def pdfplot():
     # dist.plot.kde(ax=ax, legend=False, style='r^-', lw=1, ind=ind, fillstyle='none')
     # #dist.plot.hist(density=True, ax=ax, bins=32, color='r', histtype='step', legend=False)
     
+    plt.legend(["DME42", "transition", "DME40"])
     plt.xlabel(r'$\log_{10}(\rm{IDT}[s])-\left<\log_{10}(\rm{IDT}[s])\right>$')
     plt.ylabel(r'PDF')
     plt.xlim([-0.5, 0.5])
@@ -430,6 +527,44 @@ def pdfplot():
     save_figure(fig, path='figures/Fig6a_distribution.png')
 
     plt.show()
+
+# direct MC
+from mpi4py import MPI
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
+
+def calculator(name, gas, props_arr, file_name):
+    data_dict = {'props':[]}
+    NUM = len(props_arr)
+    for i,props in enumerate(props_arr):
+        print("|{0:07.3f}s| calculator {1}: {2}/{3}...".format(time.time()-t0, name, i, NUM))
+        # set all multipliers
+        gas.set_multiplier(1.0) 
+        for j,factor in enumerate(props['factor']):
+            gas.set_multiplier(factor, j)
+        idt = get_ign(gas, props)
+        props['idt'] = idt
+        data_dict['props'] = deepcopy(props)
+        acquireLock(maxt, size, rank)
+        json_writer(file_name, data_dict)
+
+# direct MC
+def MonteCarlo(N=1000):
+    m,name,mech = mechs[0]
+    gas = load_mech(mech)
+    props = config_dict['props']
+    props['phi'], props['P'], props['T'] = 1.0, 10.0, 1000.
+
+    file_name = resp_dir+"%s_UF=%.1f_phi=%.1f_p=%.1fatm_T=%.1fK_s=%d.json"%(name,
+                UF,props['phi'],props['P'],props['T'],N)
+    uncetainty_factors = load_uncertainty(mech, UF=UF)
+    props_arr = []
+    for i in range(N):
+        props['factor'] = list(get_factors(uncetainty_factors))
+        props_arr.append(deepcopy(props))
+    l,i = [int(li) for li in np.linspace(0, len(props_arr), num=size+1)],rank
+    calculator('c%d'%i, gas, props_arr[l[i]:l[i+1]], file_name)
 
 from respSurface import *
 def trainPredict(dim=3,order=2,N=50000,method=''):
@@ -468,6 +603,14 @@ def trainPredict(dim=3,order=2,N=50000,method=''):
     NX = np.transpose(np.dot(VT[:dim], np.random.normal(0.0, 1.0, (len(uncetainty_factors),N))))
     NP,dn = response_surface.predict(NX)
 
+    # direct MC
+    N = 10000
+    resp_name = resp_dir+"%s_UF=%.1f_phi=%.1f_p=%.1fatm_T=%.1fK_s=%d.json"%(name,
+                UF,props['phi'],props['P'],props['T'], N)
+    data_arr = json_reader(resp_name)
+    idt_arr = [sd['props']['idt'] for sd in data_arr]
+    MC = np.log10(idt_arr)
+
     # showing
     print(file_name)
     cprint("dim: %d, ord: %d, train: %d, valid: %d"%(dim,order,trainSize,len(f)-trainSize), 'b')
@@ -480,24 +623,48 @@ def trainPredict(dim=3,order=2,N=50000,method=''):
     dist = pd.DataFrame(NP, columns=['samples'])
     dist.plot.kde(ax=ax, legend=False, style='k.-', lw=1, ms=6, ind=ind, fillstyle='none')
 
-    dist = pd.DataFrame(xf.flatten().tolist()+vf.flatten().tolist(), columns=['train'])
+    xf = xf.flatten().tolist()+vf.flatten().tolist()
+    dist = pd.DataFrame(xf, columns=['train'])
     dist.plot.kde(ax=ax, legend=False, style='kv-', lw=1, ms=6, ind=ind, fillstyle='none')
     
-    dist = pd.DataFrame(xp.flatten().tolist()+vp.flatten().tolist(), columns=['predict'])
+    xp = xp.flatten().tolist()+vp.flatten().tolist()
+    dist = pd.DataFrame(xp, columns=['predict'])
     dist.plot.kde(ax=ax, legend=False, style='r^-', lw=1, ms=6, ind=ind, fillstyle='none')
 
-
+    plt.xlim([-3.6, -1.4])
+    # plt.text(-3.55, 1.75, r'(c)', fontsize=15)
     plt.xlabel(r"$\log_{10}(\rm{IDT}[s])$")
     plt.ylabel(r"PDF")
     plt.legend(['samples', 'train', 'predict'], frameon=False)
 
+    fig4, ax = plt.subplots(figsize=c2i(12,6))
+
+    NP = NP[:N]
+    dist = pd.DataFrame(NP, columns=['RS+MC'])
+    dist.plot.kde(ax=ax, legend=False, style='k.-', lw=1, ms=6, ind=ind, fillstyle='none')
+
+    dist = pd.DataFrame(MC, columns=['MC'])
+    dist.plot.kde(ax=ax, legend=False, style='ro-', lw=1, ms=6, ind=ind, fillstyle='none')    
+
+    print("RS+MC:",   np.std(NP), np.mean(NP))
+    print("MC:",      np.std(MC), np.mean(MC))
+    print("train:",   np.std(xf), np.mean(xf))
+    print("predict:", np.std(xp), np.mean(xp))
+
     plt.xlim([-3.6, -1.4])
+    # plt.text(-3.55, 1.75, r'(d)', fontsize=15)
+    plt.xlabel(r"$\log_{10}(\rm{IDT}[s])$")
+    plt.ylabel(r"PDF")
+    plt.legend(['RS+MC', 'MC'], frameon=False)
+
     fig1.subplots_adjust(left=0.18,bottom=0.22,top=0.95,right=0.95,hspace=0.,wspace=0.)
     fig2.subplots_adjust(left=0.18,bottom=0.22,top=0.95,right=0.95,hspace=0.,wspace=0.)
     fig3.subplots_adjust(left=0.18,bottom=0.22,top=0.95,right=0.95,hspace=0.,wspace=0.)
+    fig4.subplots_adjust(left=0.18,bottom=0.22,top=0.95,right=0.95,hspace=0.,wspace=0.)
     save_figure(fig1, "figures/FigS3a_train&valid.png")
     save_figure(fig2, "figures/FigS3b_prediction.png")
     save_figure(fig3, "figures/FigS3c_pdf.png")
+    save_figure(fig4, "figures/FigS3d_RS&MC.png")
     plt.show()
 
 def propagation():
@@ -662,7 +829,7 @@ def propagation():
         s_data_list = np.array(S_DATA_DICT[phi][P])[:,1]
         c_data_list = np.abs(p_data_list-i_data_list)/(np.abs(p_data_list-i_data_list)+np.abs(i_data_list-s_data_list))
         #if(p==1): c_data_list[1] = np.nan
-        EX[p].plot(T_revert, c_data_list, color_arr[1]+'^-')
+        EX[p].plot(T_revert, c_data_list, color_arr[1]+'^-', fillstyle='none')
         minE, maxE = min(minE, np.min(c_data_list))-0.02, max(maxE, np.max(c_data_list)*1.2)+0.02
     
     for p,P in enumerate(P_arr):
@@ -685,7 +852,7 @@ def propagation3():
     font={'size':15}
     matplotlib.rc('font', **font)
 
-    p_pos, s_pos = 1, 2
+    p_pos, s_pos = 0, 1
     pmech = mechs[p_pos]
     smech = mechs[s_pos]
 
@@ -831,7 +998,7 @@ def propagation3():
                 data_list[2][1],data_list[3][1],data_list[4][1]))
 
     #plt.legend(["MC", "PCE"], frameon=False)
-    plt.xlabel(r"$\|P^T \mathbf{w}_{d,1}\|$")
+    plt.xlabel(r"$\|P \mathbf{w}_{d,1}\|$")
     plt.ylabel(r"$\sigma_{r,t}/\sigma_{r,d}$")
 
     I_DATA_DICT = deepcopy(data_dict)
@@ -930,19 +1097,27 @@ def propagation3():
             i_data_list = np.array(I_DATA_DICT[phi][P])[:,1]
             s_data_list = np.array(S_DATA_DICT[phi][P])[:,1]
             t_data_list = np.abs(p_data_list-i_data_list)
-            c_data_list = (p_data_list-i_data_list)/(np.abs(p_data_list-i_data_list)+np.abs(i_data_list-s_data_list))
+            c_data_list = np.abs(p_data_list-i_data_list)/(np.abs(p_data_list-i_data_list)+np.abs(i_data_list-s_data_list))
             #EX[i][p].plot(T_revert, t_data_list, color_arr[0]+'v-')
-            EX[p][i].plot(T_revert, c_data_list, color_arr[1]+'^-')
+            #EX[p][i].plot(T_revert, c_data_list, color_arr[1]+'^-', fillstyle='none')
             #minE, maxE = min(min(minE, np.min(t_data_list)*0.8),np.min(t_data_list)*1.2), max(maxE, np.max(t_data_list)*1.2)
             minE, maxE = min(minE, np.min(c_data_list)-0.1), max(maxE, np.max(c_data_list)+0.1)
 
     cprint("Setting plots", 'g')
-    set_sub_plots2(EX, r'1000/T, $K^{-1}$', r'$r_t$', Legend, xlim=[minT, maxT], ylim=[minE, maxE])
-    set_sub_plots(AX, r'$1000/T (K^{-1})$', r'$\log(IDT[s])$', Legend, xlim=[minT,maxT],ylim=[minA,maxA])
-    set_sub_plots(BX, r'$1000/T (K^{-1})$', r'$\sigma_r$',Legend, xlim=[minT,maxT],ylim=[minB,maxB])
+    Legend = [r'$\sigma_{r,d}$', r'$\sigma_{r,t}$', r'$\sigma_{r,s}$']
+    #set_sub_plots2(EX, r'1000/T, $K^{-1}$', r'$r_t$', Legend, xlim=[minT, maxT], ylim=[minE, maxE])
+    set_sub_plots(AX, r'$1000/T (K^{-1})$', r'$\log(IDT[s])$', Legend, xlim=[minT,maxT],ylim=[minA,maxA],ncol=3)
+    set_sub_plots(BX, r'$1000/T (K^{-1})$', r'$\sigma_r$',Legend, xlim=[minT,maxT],ylim=[minB,maxB],ncol=3)
     cprint("Saving figures", 'g')
     figB.subplots_adjust(left=0.06, bottom=0.09, top=0.98, right=0.90, hspace=0., wspace=0.)
-    save_figure(figB, 'figures/FigS4_%s_%s_Sigm.png'%(pmech[1],smech[1]))
+    save_figure(figE, 'figures/Fig10_%s_%s_Elim.png'%(pmech[1],smech[1]))
+    save_figure(figB, 'figures/Fig9_%s_%s_Sigm.png'%(pmech[1],smech[1]))
     plt.show()
 
-showAS()
+# MonteCarlo(10000)
+trainPredict()
+# pdfplot()
+# propagation3()
+# sensitivity()
+
+

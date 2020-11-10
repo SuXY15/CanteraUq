@@ -5,12 +5,11 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-name = "H2"
-mech = "mech/H2/H2.cti"
-# phi_arr=[0.5]
-# P_arr = [10.]
-# T_arr = [650.]
-# conditions = get_conditions(phi_arr, P_arr, T_arr)
+m, name, mech = mechs[12]
+phi_arr=[1]
+P_arr = [1.]
+T_arr = [1200.]
+conditions = get_conditions(phi_arr, P_arr, T_arr)
 
 props['mri'] = []
 # calculator
@@ -52,6 +51,7 @@ def sampling():
     # load main reactions
     main_reaction_idx = set(json_reader(sens_dir+name+"_mr.json")[0]['mr'])
     props['mri'] = [int(i) for i in main_reaction_idx]
+    props_arr = []
     for props['phi'],props['P'],props['T'] in conditions:
         file_name = acts_dir+"%s_UF=%.1f_phi=%.1f_p=%.1fatm_T=%.1fK_s=%d.json"%(name,
                         UF,props['phi'],props['P'],props['T'],samplingSize)
@@ -59,19 +59,18 @@ def sampling():
             cprint("File %s exists."%file_name, 'b')
 
         # sample for factors
-        props_arr = []
         for s in range(samplingSize):#  monte carlo
             props['factor'] = list(get_factors(uncetainty_factors))
             props_arr.append(deepcopy(props))
 
-        # calculations
-        print("\nStart c%d of phi=%.1f P=%.1fatm T=%.1fK"%(rank,props['phi'],props['P'],props['T']))
-        l,i = [int(li) for li in np.linspace(0, len(props_arr), num=size+1)],rank
-        calculator('c%d'%i, gas, props_arr[l[i]:l[i+1]], file_name)
+    # calculations
+    print("\nStart c%d"%(rank))
+    l,i = [int(li) for li in np.linspace(0, len(props_arr), num=size+1)],rank
+    calculator('c%d'%i, gas, props_arr[l[i]:l[i+1]], file_name)
 
 def show(show_flag=0):
-    m,name,mech = mechs[1]
-    props['phi'],props['P'],props['T'] = 1.0, 10.0, 1200.0
+    m,name,mech = mechs[12]
+    props['phi'],props['P'],props['T'] = 1.0, 1.0, 1200.0
 
     # loading
     gas = load_mech(mech)
@@ -195,7 +194,7 @@ def generate():
                 try:
                     # SVD decomposing
                     U,S,VT = np.linalg.svd(C)
-                    cprint("S[0]:%.4f,S[1]:%.4f,S[2]:%.4f"%(S[0],S[1],S[2]),'b')
+                    cprint("S[0]:%.4f,S[1]:%.4f,S[2]:%.4f,S[:]:%.4f"%(S[0],S[1],S[2],np.sum(S[:4])),'b')
                     json_writer(subs_name,{'subspace':VT.tolist()})
                 except:
                     cprint("Error in SVD decomposing")

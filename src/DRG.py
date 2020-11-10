@@ -12,7 +12,7 @@ from sensitivity_analysis import run_sa
 
 # ===========================
 # setting
-model_file = mech_dir+mech_arr[0]+".cti"
+model_file = mech_dir+mech_arr[0]+".yaml"
 conditions = mech_dir+"conditions.txt"
 fuel = props['fuel'].split(':')[0]
 target_species = [fuel,'O2']
@@ -27,7 +27,7 @@ solution_object = ct.Solution(model_file)
 final_error = [0]
 
 def test():
-    thresh = np.array(range(1,50))*0.01
+    thresh = 0.49 + np.array(range(1,20))*0.005
     # running drg
     reduced_model, [errs, nums, dels] = run_drg(solution_object, conditions, error,
             target_species, retained_species, model_file, final_error, thresh)
@@ -45,7 +45,7 @@ def reduce(thresh):
     cprint("\nFinal counts: sp:%d, reac:%d"%(len(new_s),len(reduced_model.reactions())),'g')
     cprint("Species deleted:"+" ".join(del_s),'g')
 
-    reduced_model.name = mech_dir+"DMEsk%d"%len(new_s)
+    reduced_model.name = mech_dir+"sk%d"%len(new_s)
     output_file = soln2cti.write(reduced_model)
 
 def curv(idx=[]):
