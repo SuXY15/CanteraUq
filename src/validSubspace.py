@@ -1,6 +1,7 @@
 from utils import *
 from mpi4py import MPI
 
+np.random.seed(0x919191>>7)
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
@@ -131,20 +132,33 @@ def show(show_flag=0):
     mu_ratio_arr = []
     sigma_ratio_arr = []
     rawsigma_ratio_arr = []
+    sens_ratio_arr_zout = []
 
-    import random
+    sigma_ratio_mean_arr = []
+    sigma_ratio_std_arr = []
+
+    subs_ratio_mean_arr = []
+    subs_ratio_std_arr = []
+
+    mu_ratio_mean_arr = []
+    mu_ratio_std_arr = []
+
     oidx = range(len(idt))
-    for k in range(35, 285):
+    for k in range(10, 285):
         # progress(k/100)
         # calculating subspace
         tdata[:,ridx[:k]] = 0 # set the most in-sensitive to be zero
         sens_ratio = np.mean([np.dot(td0[i], tdata[i])/td0norm[i] for i in range(len(td0))])
 
-        if len(sens_ratio_arr)>0 and (1-sens_ratio)/(1-sens_ratio_arr[-1]) < 1.02:
+        if len(sens_ratio_arr)>0 and (1-sens_ratio)/(1-sens_ratio_arr[-1]) < 1.03:
             continue
 
+        sens_ratio_arr_zout.append(1-sens_ratio)
         for z in range(10):
-            sidx = random.sample(oidx, 400)
+            # sidx = np.random.sample(oidx, 400)
+            # sidx = [int(s*(len(oidx)-1)) for s in np.random.sample(400)]
+            sidx = np.random.choice(oidx, 400, replace=False)
+
             # sidx = oidx
             VT = cal_subspace(tdata[sidx])
             mu, sigma = cal_responseSurface(idt[sidx], factors[sidx], VT)
@@ -157,8 +171,18 @@ def show(show_flag=0):
             # rawsigma = np.std(np.log10(idt[sidx]))
             # rawsigma_ratio_arr.append(rawsigma/sigma0)
 
-            if sens_ratio>0.99 and abs(1-sigma/sigma0)>2e-2:
-                print("%.5f %.3e"%(sens_ratio, abs(1-sigma/sigma0)))
+            if sens_ratio>0.99 and abs(1-sigma/sigma0)>2.5e-2:
+                print("%3d %.5f %.3e"%(k, sens_ratio, abs(1-sigma/sigma0)))
+
+        # mus = np.abs(1-np.array(mu_ratio_arr[-32:]))
+        # subss = np.abs(1-np.array(subs_ratio_arr[-32:]))
+        # sigmas = np.abs(1-np.array(sigma_ratio_arr[-32:]))
+        # sigma_ratio_mean_arr.append(np.mean(sigmas))
+        # sigma_ratio_std_arr.append(np.std(sigmas))
+        # subs_ratio_mean_arr.append(np.mean(subss))
+        # subs_ratio_std_arr.append(np.std(subss))
+        # mu_ratio_mean_arr.append(np.mean(mus))
+        # mu_ratio_std_arr.append(np.std(mus))
 
     sens_ratio_arr = 1-np.array(sens_ratio_arr)
     subs_ratio_arr = 1-np.array(subs_ratio_arr)
@@ -173,28 +197,35 @@ def show(show_flag=0):
     ax.plot(sens_ratio_arr, mu_ratio_arr, color_arr[1]+symbol_arr[1], fillstyle='none',ms=4, alpha=0.5)
     ax.plot(sens_ratio_arr, sigma_ratio_arr, color_arr[2]+symbol_arr[2], fillstyle='none',ms=4, alpha=0.5)
     # ax.plot(sens_ratio_arr, rawsigma_ratio_arr, color_arr[3]+symbol_arr[3], fillstyle='none',ms=4, alpha=0.5)
+    # ax.plot(sens_ratio_arr_zout, sigma_ratio_mean_arr, color_arr[3]+'-', lw=1.2)
     ax.plot([np.min(sens_ratio_arr),np.max(sens_ratio_arr)], [2.5e-2, 2.5e-2], 'k--')
-    ax.set_ylim([3e-6, 2e-1])
+    # ax.errorbar(sens_ratio_arr_zout, subs_ratio_mean_arr,  yerr=3*np.array(subs_ratio_std_arr),  fmt=color_arr[0]+symbol_arr[0])
+    # ax.errorbar(sens_ratio_arr_zout, mu_ratio_mean_arr,    yerr=3*np.array(mu_ratio_std_arr),    fmt=color_arr[1]+symbol_arr[1])
+    # ax.errorbar(sens_ratio_arr_zout, sigma_ratio_mean_arr, yerr=3*np.array(sigma_ratio_std_arr), fmt=color_arr[2]+symbol_arr[2])
+    ax.set_ylim([5e-6, 1])
 
     ax.set_xscale('log')
     ax.set_yscale('log')
     ax.set_ylabel("Prediction Error")
-    plt.legend([r"$w_1$", r'$\mu_{r}$', r'$\sigma_{r}$'], loc=(0.7, -0.8))
+    plt.legend([r"$w_1$", r'$\mu_{r}$', r'$\sigma_{r}$'], handlelength= 0.8,
+            labelspacing = 0.2, handletextpad = 0.2, columnspacing = 0.8,
+            ncol=3, loc=(0.25, 0.8))
 
     filename = sens_dir+"DMEzhao"+".json"
     sens_data = [d['tdata'] for d in json_reader(filename)]
     filename = sens_dir+"DMEzhao"+"_mr.json"
     mri = json_reader(filename)[0]['mr']
     
-    # errors in sens data at nominal parameters, for all conditions
-    sens_error_arr = [] 
-    for sens in sens_data:
-        orig_s = normalize(sens)
-        main_s = np.zeros(len(orig_s))
-        main_s[mri] = orig_s[mri]
-        ratio = np.dot(orig_s, main_s)
-        sens_error_arr.append(1-ratio)
+    # # errors in sens data at nominal parameters, for all conditions
+    # sens_error_arr = [] 
+    # for sens in sens_data:
+    #     orig_s = normalize(sens)
+    #     main_s = np.zeros(len(orig_s))
+    #     main_s[mri] = orig_s[mri]
+    #     ratio = np.dot(orig_s, main_s)
+    #     sens_error_arr.append(1-ratio)
 
+    # print(sens_error_arr)
     # errors in the parameter space, for the single condition
     sens_error_arr = []
     for sens in tDATA:
@@ -204,10 +235,11 @@ def show(show_flag=0):
         ratio = np.dot(orig_s, main_s)
         sens_error_arr.append(1-ratio)
 
-    ax2.hist(sens_error_arr, alpha=0.5, bins=np.logspace(np.log10(np.min(sens_ratio_arr)),np.log10(np.max(sens_ratio_arr)), 30))
-    ax2.set_ylabel("PDF of Sensitvity Error")
+    plt_bins = np.logspace(np.log10(np.min(sens_ratio_arr)),np.log10(np.max(sens_ratio_arr)), 30)
+    ax2.hist(sens_error_arr, alpha=0.5, bins=plt_bins)
+    ax2.set_ylabel(r"PDF of $\epsilon_S$")
     ax2.set_xscale('log')
-    ax2.set_xlabel("Sensitivity Error")
+    ax2.set_xlabel(r"$\epsilon_S$")
     save_figure(fig, path=figs_dir+"validSubspace_show.png")
     plt.show()
 

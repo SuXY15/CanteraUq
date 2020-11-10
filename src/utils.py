@@ -1,6 +1,7 @@
 import os, sys, time, json
 import threading
 import numpy as np
+import pandas as pd
 import cantera as ct
 try:
     import matplotlib
