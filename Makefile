@@ -10,11 +10,9 @@ mech = "H2"
 config:
 	python3 src/config.py ${mech}
 
-
 # showing mechansim's combustion property
 property:
 	python3 src/property.py ${mech}
-
 
 # DRG mechanism reduction
 DRG_test:
@@ -24,7 +22,6 @@ DRG_reduce:
 DRG_curv:
 	python3 src/DRG.py ${mech} curv ${idx}
 
-
 # IDT mechanism comparation
 compare:
 ifdef N
@@ -33,11 +30,9 @@ else
 	python3 src/compare.py ${mech}
 endif
 
-
 # compare reaction pathway
 pathway:
 	python3 src/pathway.py ${mech}
-
 
 # mechanism pdiff calibration
 calibration:
@@ -47,7 +42,6 @@ else
 	python3 src/calibration.py ${mech}
 endif
 
-
 # mechanism sensitivity analysis
 sensAnalyze:
 ifdef N
@@ -56,11 +50,9 @@ else
 	python3 src/sensAnalyze.py ${mech}
 endif
 
-
 # mechanism check sensitivity infinty
 checkInf:
 	python3 src/checkInf.py ${mech}
-
 
 # active subspace
 subspace_sampling:
@@ -77,7 +69,6 @@ ifdef N
 else
 	python3 src/activeSubspace.py ${mech} generate
 endif
-
 
 # response surfaces
 response_anntrain:
@@ -103,10 +94,8 @@ propagation_err:
 check:
 	python3 src/check.py ${mech}
 
-
 figure:
 	python3 src/makeFigure.py $(mech)
-
 
 # tools: clean
 clean:

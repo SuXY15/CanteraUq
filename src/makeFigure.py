@@ -291,7 +291,7 @@ def sensitivity():
     tdata_arr = np.array([normalize(d['tdata']) for d in data_arr])
     sdata_arr = np.array([normalize(d['sdata']) for d in data_arr])
 
-    T, P, phi = 1200., 1., 1.
+    T, P, phi = 1000., 1., 1.
 
     fig = plt.figure("Sensitivity Calibaration",figsize=c2i(16,8))
     props = [props_arr[i] for i,p in enumerate(props_arr) if \
@@ -304,12 +304,11 @@ def sensitivity():
     plt.bar(x+0.2,sdata[rank],width=0.4,color='C1')
     print("Inner product: ", np.dot(tdata,sdata))
 
-    plt.xlabel(r'Reaction Index')
+    plt.xlabel(r'reaction index')
     plt.ylabel(r'$S_{\tau}$')
     plt.legend(["brute force","adjoint"], frameon=False)
-    # plt.ylim([-1.,1.])
     plt.xticks(x,xtick,rotation=270)
-    plt.ylim([-1, 1])
+    # plt.ylim([-1, 1])
     save_figure(fig, path='figures/Fig5_%s_T=%.0fK.png'%(name,T))
 
 def subspace():
@@ -852,7 +851,7 @@ def propagation3():
     font={'size':15}
     matplotlib.rc('font', **font)
 
-    p_pos, s_pos = 0, 1
+    p_pos, s_pos = 2, 3
     pmech = mechs[p_pos]
     smech = mechs[s_pos]
 
@@ -997,6 +996,8 @@ def propagation3():
             print("%.1f %2.0f %.5f %.5f %.5f %.5f %.5f"%(phi,P,data_list[0][1],data_list[1][1],
                 data_list[2][1],data_list[3][1],data_list[4][1]))
 
+    # plt.xlim([0.86, 1.015])
+    # plt.ylim([0.86, 1.015])
     #plt.legend(["MC", "PCE"], frameon=False)
     plt.xlabel(r"$\|P \mathbf{w}_{d,1}\|$")
     plt.ylabel(r"$\sigma_{r,t}/\sigma_{r,d}$")
@@ -1083,7 +1084,7 @@ def propagation3():
                 bottom = (2-p)*0.3 + 0.03 + (data_list[t,0]-minA)/(maxA-minA)*0.3-half_axes_height
                 plt.figure("Data Distributions")
                 ax = plt.axes([left,bottom,width,height],facecolor='none')
-                plt.plot(dist_list[t][0],dist_list[t][1],color_arr[2]+'v',ms=1)
+                plt.plot(dist_list[t][0],dist_list[t][1],color_arr[2]+'v',ms=1, fillstyle="none")
                 for edge in ['top','right','bottom','left']:
                     ax.spines[edge].set_visible(False)
                 plt.xticks([])
@@ -1098,14 +1099,15 @@ def propagation3():
             s_data_list = np.array(S_DATA_DICT[phi][P])[:,1]
             t_data_list = np.abs(p_data_list-i_data_list)
             c_data_list = np.abs(p_data_list-i_data_list)/(np.abs(p_data_list-i_data_list)+np.abs(i_data_list-s_data_list))
-            #EX[i][p].plot(T_revert, t_data_list, color_arr[0]+'v-')
-            #EX[p][i].plot(T_revert, c_data_list, color_arr[1]+'^-', fillstyle='none')
-            #minE, maxE = min(min(minE, np.min(t_data_list)*0.8),np.min(t_data_list)*1.2), max(maxE, np.max(t_data_list)*1.2)
+            # EX[i][p].plot(T_revert, t_data_list, color_arr[0]+'v-')
+            # EX[p][i].plot(T_revert, c_data_list, color_arr[1]+'^-', fillstyle='none')
+            # minE, maxE = min(min(minE, np.min(t_data_list)*0.8),np.min(t_data_list)*1.2), max(maxE, np.max(t_data_list)*1.2)
             minE, maxE = min(minE, np.min(c_data_list)-0.1), max(maxE, np.max(c_data_list)+0.1)
 
     cprint("Setting plots", 'g')
     Legend = [r'$\sigma_{r,d}$', r'$\sigma_{r,t}$', r'$\sigma_{r,s}$']
-    #set_sub_plots2(EX, r'1000/T, $K^{-1}$', r'$r_t$', Legend, xlim=[minT, maxT], ylim=[minE, maxE])
+    # set_sub_plots2(EX, r'1000/T, $K^{-1}$', r'$r_t$', Legend, xlim=[minT, maxT], ylim=[minE, maxE])
+    set_sub_plots2(EX, r'1000/T, $K^{-1}$', r'', Legend, xlim=[minT, maxT], ylim=[minE, maxE])
     set_sub_plots(AX, r'$1000/T (K^{-1})$', r'$\log(IDT[s])$', Legend, xlim=[minT,maxT],ylim=[minA,maxA],ncol=3)
     set_sub_plots(BX, r'$1000/T (K^{-1})$', r'$\sigma_r$',Legend, xlim=[minT,maxT],ylim=[minB,maxB],ncol=3)
     cprint("Saving figures", 'g')
@@ -1115,9 +1117,9 @@ def propagation3():
     plt.show()
 
 # MonteCarlo(10000)
-trainPredict()
+# trainPredict()
 # pdfplot()
-# propagation3()
+propagation3()
 # sensitivity()
 
 
