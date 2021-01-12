@@ -100,3 +100,46 @@ figure:
 # tools: clean
 clean:
 	rm data/tmp/*
+
+
+## UQ PART
+mech = "H2"
+
+# configuration
+UQ_config:
+	python3 src/UQ/config.py ${mech}
+
+# mechanism sensitivity analysis
+UQ_sensAnalyze:
+ifdef N
+	mpiexec -N ${N} python3 src/UQ/sensAnalyze.py ${mech}
+else
+	python3 src/UQ/sensAnalyze.py ${mech}
+endif
+
+# active subspace
+UQ_subspace_sampling:
+ifdef N
+	mpiexec -N ${N} python3 src/UQ/activeSubspace.py ${mech} sampling
+else
+	python3 src/UQ/activeSubspace.py ${mech} sampling
+endif
+UQ_subspace_show:
+	python3 src/UQ/activeSubspace.py ${mech} show
+UQ_subspace_generate:
+ifdef N
+	mpiexec -N ${N} python3 src/UQ/activeSubspace.py ${mech} generate
+else
+	python3 src/UQ/activeSubspace.py ${mech} generate
+endif
+
+# response surfaces
+UQ_response_train:
+	python3 src/UQ/respSurface.py ${mech} train
+UQ_response_predict:
+	python3 src/UQ/respSurface.py ${mech} predict
+UQ_response_distribution:
+	python3 src/UQ/respSurface.py ${mech} distribution
+UQ_response_single:
+	python3 src/UQ/respSurface.py ${mech} single
+
