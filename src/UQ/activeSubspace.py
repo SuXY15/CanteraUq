@@ -5,12 +5,6 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-m, name, mech = mechs[12]
-phi_arr=[1]
-P_arr = [1.]
-T_arr = [1200.]
-conditions = get_conditions(phi_arr, P_arr, T_arr)
-
 props['mri'] = []
 # calculator
 def calculator(name, gas, props_arr, file_name):
@@ -18,24 +12,12 @@ def calculator(name, gas, props_arr, file_name):
     NUM = len(props_arr)
     for i,props in enumerate(props_arr):
         print("|{0:07.3f}s| calculator {1}: {2}/{3}...".format(time.time()-t0, name, i, NUM))
-        # set all multipliers
-        gas.set_multiplier(1.0) 
-        for j,factor in enumerate(props['factor']):
-            gas.set_multiplier(factor, j)
-
-        # brute force method for idt sensitivity
-        sens = np.zeros(gas.n_reactions)
-        idt = get_ign(gas, props)
-
-        for p in props['mri']:
-            gas.set_multiplier(props['factor'][p]*(1+pdiff), p)
-            pidt = get_ign(gas, props)
-            sens[p] = (np.log(pidt) - np.log(idt))/np.log(1+pdiff)
-            gas.set_multiplier(props['factor'][p], p)
-
-        props['idt'] = idt
+        
+        idt, sens = get_ign_sens_bf(gas, props)
+        
         # save data
         if (np.sum(np.isinf(sens))+np.sum(np.isnan(sens)))==0:
+            props['idt'] = idt
             data_dict['props'] = deepcopy(props)
             data_dict['tdata'] = deepcopy(sens.tolist())
             acquireLock(maxt, size, rank)

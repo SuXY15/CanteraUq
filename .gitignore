@@ -2,6 +2,7 @@ data/
 mech/
 !mech/H2
 !mech/DME
+!mech/Kerosene
 *__pycache__*
 local
 *.DS_Store*

@@ -1,10 +1,10 @@
 from utils import *
 from check import *
-# from mpi4py import MPI
+from mpi4py import MPI
 
-# comm = MPI.COMM_WORLD
-# rank = comm.Get_rank()
-# size = comm.Get_size()
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
 
 # = = = = = = = = = =
 # calculator
@@ -58,7 +58,7 @@ if __name__=="__main__":
         l,i = [int(li) for li in np.linspace(0, len(calc_arr), num=size+1)],rank
         calculator('c%d'%i, calc_arr[l[i]:l[i+1]])
 
-    # if rank!= 0: sys.exit(0)
+    if rank!= 0: sys.exit(0)
 
     # = = = = = = = = = =
     # calculate global main reactions
